@@ -1,7 +1,6 @@
 #ifndef COMPILER_TOKEN_H
 #define COMPILER_TOKEN_H
 
-#include "alloc.h"
 #include "string.h"
 
 typedef enum TokenType{
@@ -117,10 +116,17 @@ typedef enum TokenType{
 typedef struct Token{
     TokenType type;
     String *lex;
-    unsigned short line;
-    unsigned short col;
+    size_t line;
+    size_t col;
 } Token;
 
-Token* init_token(unsigned char* value, TokenType type, unsigned short line, unsigned short col);
+Token* init_token(unsigned char* value, TokenType type, size_t line, size_t col){
+    Token *token = (Token*)malloc(sizeof(Token));
+    token->lex = init_str(value);
+    token->type = type;
+    token->line = line;
+    token->col = col;
+    return token;
+}
 
 #endif
