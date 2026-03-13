@@ -120,7 +120,7 @@ typedef struct Token{
     size_t col;
 } Token;
 
-Token* init_token(unsigned char* value, TokenType type, size_t line, size_t col){
+static inline Token* init_token(const char* value, TokenType type, size_t line, size_t col){
     Token *token = (Token*)malloc(sizeof(Token));
     token->lex = init_str(value);
     token->type = type;

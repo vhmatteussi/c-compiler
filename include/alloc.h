@@ -12,7 +12,7 @@
 static uint8_t arena_buff[ARENA_CAP];
 static size_t arena_offset = 0;
 
-void *malloc(size_t size){
+static inline void *malloc(size_t size){
     size_t aligned_size = ALIGN_UP(size, ALIGNMENT);
 
     if(arena_offset + aligned_size > ARENA_CAP){
@@ -26,7 +26,7 @@ void *malloc(size_t size){
     return p;
 }
 
-void *calloc(size_t count, size_t size){
+static inline void *calloc(size_t count, size_t size){
     size_t total_size = count * size;
     void *p = malloc(total_size);
 
@@ -35,7 +35,7 @@ void *calloc(size_t count, size_t size){
         size_t dwords = aligned_size / 8;
         uint64_t* p64 = (uint64_t*)p;
 
-        for(int i=0; i<dwords; i++){
+        for(size_t i=0; i<dwords; i++){
             p64[i] = 0x00;
         }
     }
@@ -43,7 +43,7 @@ void *calloc(size_t count, size_t size){
     return p;
 }
 
-void reset_arena(void){
+static inline void reset_arena(void){
     arena_offset = 0;
 }
 

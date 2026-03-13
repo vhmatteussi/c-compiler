@@ -34,8 +34,8 @@ void advance(Lexer *l){
         return;
     }
 
+    unsigned char c = peek(l);
     l->forward++;
-    unsigned char c = l->src[l->forward];
 
     if(c == '\n'){
         l->line++;
@@ -54,11 +54,11 @@ void skip_whitespace(Lexer *l){
         }
         else if(c == '/'){
             if(peek_next(l) == '/'){
-                while(peek(l) != '/n' && peek(l) != '\0'){
+                while(peek(l) != '\n' && peek(l) != '\0'){
                     advance(l);
                 }
             }
-            if(peek_next(l) == '*'){
+            else if(peek_next(l) == '*'){
                 advance(l);
                 advance(l);
                 while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
@@ -86,7 +86,7 @@ Token* set_token(Lexer *l, TokenType type){
         buffer[i] = l->src[l->start + i];
     }
     buffer[lenght] = '\0';
-    return init_token(buffer, type, l->line, l->col);
+    return init_token((const char*)buffer, type, l->line, l->col);
 }
 
 Token* next_token(Lexer *l){
@@ -98,4 +98,149 @@ Token* next_token(Lexer *l){
     if(c == '\0'){
         return set_token(l, TOK_EOF);
     }
+
+    advance(l);
+
+    if(is_alpha(c)){
+        while(is_alpha(peek(l)) || is_digit(peek(l))){
+            advance(l);
+        }
+        return set_token(l, TOK_ID);
+    }
+
+    if(is_digit(c)){
+        while(is_digit(peek(l))){
+            advance(l);
+        }
+        if(peek(l) == '.'){
+            advance(l);
+            while(is_digit(peek(l))){
+                advance(l);
+            }
+            if(peek(l) == 'f' || peek(l) == 'F'){
+                advance(l);
+            }
+            return set_token(l, TOK_NUM_FLOAT);
+        }
+        return set_token(l, TOK_NUM_INT);
+    }
+
+    if(c == '"'){
+        while(peek(l) != '"' && peek(l) != '\0'){
+            if(peek(l) == '\\'){
+                advance(l);
+            }
+            advance(l);
+        }
+        if(peek(l) == '"'){
+            advance(l);
+        }
+        return set_token(l, TOK_LIT_STRING);
+    }
+
+    if(c == 0x27){
+        while(peek(l) != 0x27 && peek(l) != '\0'){
+            if(peek(l) == '\\'){
+                advance(l);
+            }
+            advance(l);
+        }
+        if(peek(l) == 0x27){
+            advance(l);
+        }
+        return set_token(l, TOK_LIT_CHAR);
+    }
+
+    switch(c){
+        case '(': return set_token(l, TOK_LPAREN);
+        case ')': return set_token(l, TOK_RPAREN);
+        case '{': return set_token(l, TOK_LBRACE);
+        case '}': return set_token(l, TOK_RBRACE);
+        case '[': return set_token(l, TOK_LBRACKET);
+        case ']': return set_token(l, TOK_RBRACKET);
+        case ';': return set_token(l, TOK_SEMICOLON);
+        case ',': return set_token(l, TOK_COMMA);
+        case '?': return set_token(l, TOK_QUESTION);
+        case ':': return set_token(l, TOK_COLON);
+        case '~': return set_token(l, TOK_BIT_NOT);
+        case '.': 
+            if(peek(l) == '.' && peek_next(l) == '.'){
+                advance(l);
+                advance(l);
+                return set_token(l, TOK_ELLIPSIS);
+            }
+            if(is_digit(peek(l))){
+                while(is_digit(peek(l))){
+                    advance(l);
+                }
+                if(peek(l) == 'f' || peek(l) == 'F'){
+                    advance(l);
+                }
+                return set_token(l, TOK_NUM_FLOAT);
+            }
+            return set_token(l, TOK_DOT);
+
+        case '+':
+            if(match(l, '+')) return set_token(l, TOK_INC);
+            if(match(l, '=')) return set_token(l, TOK_PLUS_ASSIGN);
+            return set_token(l, TOK_PLUS);
+
+        case '-':
+            if(match(l, '-')) return set_token(l, TOK_DEC);
+            if(match(l, '=')) return set_token(l, TOK_MINUS_ASSIGN);
+            if(match(l, '>')) return set_token(l, TOK_ARROW);
+            return set_token(l, TOK_MINUS);
+
+        case '*':
+            if(match(l, '=')) return set_token(l, TOK_STAR_ASSIGN);
+            return set_token(l, TOK_STAR);
+
+        case '/':
+            if(match(l, '=')) return set_token(l, TOK_SLASH_ASSIGN);
+            return set_token(l, TOK_SLASH);
+        
+        case '%':
+            if(match(l, '=')) return set_token(l, TOK_MOD_ASSIGN);
+            return set_token(l, TOK_MOD);
+
+        case '!':
+            if(match(l, '=')) return set_token(l, TOK_NOT_EQUAL);
+            return set_token(l, TOK_LOGICAL_NOT);
+
+        case '&':
+            if(match(l, '&')) return set_token(l, TOK_LOGICAL_AND);
+            if(match(l, '=')) return set_token(l, TOK_AND_ASSIGN);
+            return set_token(l, TOK_BIT_AND);
+
+        case '|':
+            if(match(l, '|')) return set_token(l, TOK_LOGICAL_OR);
+            if(match(l, '=')) return set_token(l, TOK_OR_ASSIGN);
+            return set_token(l, TOK_BIT_OR);
+
+        case '^':
+            if(match(l, '=')) return set_token(l, TOK_XOR_ASSIGN);
+            return set_token(l, TOK_BIT_XOR);
+
+        case '=':
+            if(match(l, '=')) return set_token(l, TOK_EQUAL_EQUAL);
+            return set_token(l, TOK_ASSIGN);
+
+        case '<':
+            if(match(l, '<')){
+                if(match(l, '=')) return set_token(l, TOK_SHL_ASSIGN);
+                return set_token(l, TOK_SHIFT_LEFT);
+            }
+            if(match(l, '=')) return set_token(l, TOK_LESS_EQUAL);
+            return set_token(l, TOK_LESS);
+        
+        case '>':
+            if(match(l, '>')){
+                if(match(l, '=')) return set_token(l, TOK_SHR_ASSIGN);
+                return set_token(l, TOK_SHIFT_RIGHT);
+            }
+            if(match(l, '=')) return set_token(l, TOK_GREATER_EQUAL);
+            return set_token(l, TOK_GREATER);
+    }
+
+    return set_token(l, TOK_ERR);
 }

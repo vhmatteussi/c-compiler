@@ -30,7 +30,7 @@ static inline String* init_str(const char *content){
     return new_str;
 }
 
-static inline String* strcat(const String *s1, const String *s2){
+static inline String* str_cat(const String *s1, const String *s2){
     unsigned int lenght = s1->length + s2->length;
     String *new_str = (String*)malloc(sizeof(String) + lenght + sizeof(char));
     new_str->length = lenght;
@@ -51,7 +51,7 @@ static inline String* strcat(const String *s1, const String *s2){
     return new_str;
 }
 
-static inline int strcmp(const String *s1, const String *s2){
+static inline int str_cmp(const String *s1, const String *s2){
     if(s1->length != s2->length) return (s1->length > s2->length) ? -1 : -2; // tamanhos diferentes
     if(s1 == s2) return 1; // msm ponteiro
     const char *p1 = s1->data;
