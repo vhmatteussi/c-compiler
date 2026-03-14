@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "include/token.h"
 #include "include/lexer.h"
+#include "include/keywords.h"
 
 const char* token_type_to_str(TokenType type){
     switch(type){
@@ -11,6 +12,44 @@ const char* token_type_to_str(TokenType type){
         case TOK_NUM_FLOAT: return "TOK_NUM_FLOAT";
         case TOK_LIT_STRING: return "TOK_LIT_STRING";
         case TOK_LIT_CHAR: return "TOK_LIT_CHAR";
+
+        case TOK_KW_CHAR: return "TOK_KW_CHAR";
+        case TOK_KW_INT: return "TOK_KW_INT";
+        case TOK_KW_SHORT: return "TOK_KW_SHORT";
+        case TOK_KW_LONG: return "TOK_KW_LONG";
+        case TOK_KW_FLOAT: return "TOK_KW_FLOAT";
+        case TOK_KW_DOUBLE: return "TOK_KW_DOUBLE";
+        case TOK_KW_VOID: return "TOK_KW_VOID";
+        case TOK_KW_BOOL: return "TOK_KW_BOOL";
+
+        case TOK_KW_SIGNED: return "TOK_KW_SIGNED";
+        case TOK_KW_UNSIGNED: return "TOK_KW_UNSIGNED";
+
+        case TOK_KW_STATIC: return "TOK_KW_STATIC";
+        case TOK_KW_EXTERN: return "TOK_KW_EXTERN";
+        case TOK_KW_AUTO: return "TOK_KW_AUTO";
+        case TOK_KW_REGISTER: return "TOK_KW_REGISTER";
+        case TOK_KW_INLINE: return "TOK_KW_INLINE";
+        case TOK_KW_RESTRICT: return "TOK_KW_RESTRICT";
+        
+        case TOK_KW_GOTO: return "TOK_KW_GOTO";
+        case TOK_KW_IF: return "TOK_KW_IF";
+        case TOK_KW_ELSE: return "TOK_KW_ELSE";
+        case TOK_KW_SWITCH: return "TOK_KW_SWITCH";
+        case TOK_KW_CASE: return "TOK_KW_CASE";
+        case TOK_KW_DEFAULT: return "TOK_KW_DEFAULT";
+        case TOK_KW_BREAK: return "TOK_KW_BREAK";
+        case TOK_KW_CONTINUE: return "TOK_KW_CONTINUE";
+        case TOK_KW_DO: return "TOK_KW_DO";
+        case TOK_KW_WHILE: return "TOK_KW_WHILE";
+        case TOK_KW_FOR: return "TOK_KW_FOR";
+        case TOK_KW_RETURN: return "TOK_KW_RETURN";
+
+        case TOK_KW_ENUM: return "TOK_KW_ENUM";
+        case TOK_KW_STRUCT: return "TOK_KW_STRUCT";
+        case TOK_KW_UNION: return "TOK_KW_UNION";
+        case TOK_KW_TYPEDEF: return "TOK_KW_TYPEDEF";
+        case TOK_KW_SIZEOF: return "TOK_KW_SIZEOF";
 
         case TOK_LPAREN: return "TOK_LPAREN";
         case TOK_RPAREN: return "TOK_RPAREN";
@@ -92,7 +131,7 @@ int main(int argc, char **argv){
 
     for(long i = 0; i < file_size; i++){
         if(buffer[i] == '#'){
-            while(i < file_size && buffer[i] != '\n'){
+            while(i < file_size && buffer[i] != '\n' && (i == 0 || buffer[i-1] == '\n')){
                 buffer[i] = ' ';
                 i++;
             }
@@ -101,6 +140,7 @@ int main(int argc, char **argv){
 
     Lexer *lexer = init_lexer(buffer);
     Token *tok;
+    init_kw();
 
     printf("%-15s | %-5s | %-5s | %s\n", "TYPE", "LINE", "COL", "LEX");
     printf("------------------------------------------------------------------\n");

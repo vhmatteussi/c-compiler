@@ -1,4 +1,5 @@
 #include "include/lexer.h"
+#include "include/keywords.h"
 
 Lexer *init_lexer(const unsigned char *src){
     Lexer *l = (Lexer*)malloc(sizeof(Lexer));
@@ -7,6 +8,7 @@ Lexer *init_lexer(const unsigned char *src){
     l->forward = 0;
     l->line = 0;
     l->col = 0;
+    init_kw();
     return l;
 }
 
@@ -105,7 +107,9 @@ Token* next_token(Lexer *l){
         while(is_alpha(peek(l)) || is_digit(peek(l))){
             advance(l);
         }
-        return set_token(l, TOK_ID);
+        unsigned int len = l->forward - l->start;
+        TokenType type = kw_lookup(&l->src[l->start], len);
+        return set_token(l, type);
     }
 
     if(is_digit(c)){
