@@ -1,8 +1,13 @@
 TARGET = test_lexer
 
 CC = gcc
-CFLAGS = -Wall -Wextra -g -I.
-SRCS = lexer.c tests/test-lexer.c
+CFLAGS = -Wall -Wextra -g -Ilib/include -Isrc/include
+SRCS = src/lexer.c \
+       lib/alloc.c \
+       lib/hash.c \
+       lib/strings.c \
+       lib/type.c \
+       tests/test-lexer.c
 
 OBJS = $(SRCS:.c=.o)
 

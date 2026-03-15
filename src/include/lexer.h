@@ -2,6 +2,7 @@
 #define COMPILER_LEXER_H
 
 #include "token.h"
+#include "strings.h"
 #include "type.h"
 
 typedef struct Lexer{
@@ -10,9 +11,11 @@ typedef struct Lexer{
     size_t forward;
     size_t line;
     size_t col;
+    Arena *arena;
+    StringInterner interner;
 } Lexer;
 
-Lexer *init_lexer(const unsigned char *src);
+Lexer *init_lexer(Arena *a, const unsigned char *src);
 unsigned char peek(Lexer *l);
 int match(Lexer *l, unsigned char to_match);
 

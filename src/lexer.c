@@ -1,14 +1,14 @@
-#include "include/lexer.h"
-#include "include/keywords.h"
+#include "lexer.h"
 
-Lexer *init_lexer(const unsigned char *src){
-    Lexer *l = (Lexer*)malloc(sizeof(Lexer));
+Lexer *init_lexer(Arena *a, const unsigned char *src){
+    Lexer *l = (Lexer*)arena_malloc(a, sizeof(Lexer));
     l->src = src;
     l->start = 0;
     l->forward = 0;
     l->line = 0;
     l->col = 0;
-    init_kw();
+    l->arena = a;
+    init_interner(a, &l->interner);
     return l;
 }
 
@@ -51,7 +51,7 @@ void advance(Lexer *l){
 void skip_whitespace(Lexer *l){
     while(1){
         unsigned char c = peek(l);
-        if(is_space(c)){
+        if(is_whitespace(c)){
             advance(l);
         }
         else if(c == '/'){
@@ -82,13 +82,16 @@ void skip_whitespace(Lexer *l){
 }
 
 Token* set_token(Lexer *l, TokenType type){
-    unsigned int lenght = l->forward - l->start;
-    unsigned char *buffer = (unsigned char*)malloc(lenght + sizeof(char));
-    for(unsigned int i=0; i<lenght; i++){
-        buffer[i] = l->src[l->start + i];
-    }
-    buffer[lenght] = '\0';
-    return init_token((const char*)buffer, type, l->line, l->col);
+    uint32_t len = l->forward - l->start;
+    String *lex_str = intern_string(l->arena, &l->interner, (const char*)&l->src[l->start], len);
+
+    Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
+    token->lex = lex_str;
+    token->type = type;
+    token->line = l->line;
+    token->col = l->col;
+    
+    return token;
 }
 
 Token* next_token(Lexer *l){
@@ -107,9 +110,16 @@ Token* next_token(Lexer *l){
         while(is_alpha(peek(l)) || is_digit(peek(l))){
             advance(l);
         }
-        unsigned int len = l->forward - l->start;
-        TokenType type = kw_lookup(&l->src[l->start], len);
-        return set_token(l, type);
+        uint32_t len = l->forward - l->start;
+        String *lex_str = intern_string(l->arena, &l->interner, (const char*)&l->src[l->start], len);
+        
+        Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
+        token->lex = lex_str;
+        token->type = lex_str->kw_type; 
+        token->line = l->line;
+        token->col = l->col;
+        
+        return token;
     }
 
     if(is_digit(c)){
@@ -142,14 +152,14 @@ Token* next_token(Lexer *l){
         return set_token(l, TOK_LIT_STRING);
     }
 
-    if(c == 0x27){
+    if(c == '\''){
         while(peek(l) != 0x27 && peek(l) != '\0'){
             if(peek(l) == '\\'){
                 advance(l);
             }
             advance(l);
         }
-        if(peek(l) == 0x27){
+        if(peek(l) == '\''){
             advance(l);
         }
         return set_token(l, TOK_LIT_CHAR);
