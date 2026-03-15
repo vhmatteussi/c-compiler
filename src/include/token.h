@@ -51,6 +51,7 @@ typedef enum TokenType{
     TOK_KW_BOOL,
     TOK_KW_COMPLEX,
     TOK_KW_IMAGINARY,
+    TOK_KW_PRAGMA,
     // Numbers
     TOK_NUM_INT,
     TOK_NUM_FLOAT,

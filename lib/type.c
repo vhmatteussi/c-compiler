@@ -1,4 +1,4 @@
-#include "include/type.h"
+#include "type.h"
 
 uint32_t is_digit(unsigned char c){
     return (unsigned char)(c - '0') < MAX_NUM;

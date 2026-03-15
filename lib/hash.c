@@ -1,4 +1,4 @@
-#include "include/hash.h"
+#include "hash.h"
 
 uint32_t fnv1a_32(const void* data, size_t lenght){
     const uint8_t* bytes = (const uint8_t*)data;

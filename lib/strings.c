@@ -1,4 +1,4 @@
-#include "include/strings.h"
+#include "strings.h"
 
 uint32_t rawstr_size(const char *s){
     const char *s_aux = s;
@@ -66,12 +66,13 @@ uint32_t string_cmp(const String *s1, const String *s2){
 
     const char *p1 = s1->data;
     const char *p2 = s2->data;
-    for(unsigned int i=0; i<s1->length; i++){
+    for(uint32_t i=0; i<s1->length; i++){
         if(p1[i] != p2[i]) return 0;
     }
     return 1;
 }
 
+// inlines talvez sejam inuteis depedendo de como eu for implementar, eu prefiro transformar em um comando invés de sugestão, mas n sei se vai dar
 static inline uint32_t string_eq_raw(String *s1, const char *raw_str, uint32_t lenght){
     if(s1->length != lenght){
         return 0;
@@ -133,6 +134,7 @@ void init_interner(Arena *a, StringInterner *interner){
     intern_keyword(a, interner, "_Bool", TOK_KW_BOOL);
     intern_keyword(a, interner, "_Complex", TOK_KW_COMPLEX);
     intern_keyword(a, interner, "_Imaginary", TOK_KW_IMAGINARY);
+    intern_keyword(a, interner, "_Pragma", TOK_KW_PRAGMA);
 }
 
 String *intern_string(Arena *a, StringInterner *interner, const char *str, uint32_t lenght){
