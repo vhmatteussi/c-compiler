@@ -7,10 +7,11 @@
 typedef struct String String;
 
 typedef enum TokenType{
-    // Default (remover err ou other)
+    // Special
     TOK_EOF,
     TOK_ERR,
-    TOK_OTHER,
+    TOK_HASH,
+    TOK_HASH_HASH,
     // Identifier
     TOK_ID,
     // Keywords

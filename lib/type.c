@@ -30,11 +30,11 @@ uint32_t is_octal(unsigned char c){
 
 // muito mais legal do que fazer um switch case
 static const uint64_t escape_mask[4] = {
-    (1ULL<<'"')       | (1ULL<<'\'')     | (1ULL<<'?'),
-    (1ULL<<('\\'-64)) | (1ULL<<('a'-64)) | (1ULL<<('b'-64)) | (1ULL<<('f'-64)) |
-     (1ULL<<('n'-64)) | (1ULL<<('r'-64)) | (1ULL<<('t'-64)) | (1ULL<<('v'-64)),
-    0,
-    0
+    (1ULL<<'"')       | (1ULL<<'\'')     | (1ULL<<'?'), // 0 - 63
+    (1ULL<<('\\'-64)) | (1ULL<<('a'-64)) | (1ULL<<('b'-64)) | (1ULL<<('f'-64)) | // 64 - 127
+     (1ULL<<('n'-64)) | (1ULL<<('r'-64)) | (1ULL<<('t'-64)) | (1ULL<<('v'-64)),  // 64 - 127
+    0, // 128 - 191
+    0  // 192 - 255
 };
 
 uint32_t is_in_escape_list(unsigned char c){

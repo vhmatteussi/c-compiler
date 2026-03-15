@@ -94,7 +94,7 @@ Token* set_token(Lexer *l, TokenType type){
     return token;
 }
 
-static Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
+Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
     while(peek(l) != quote && peek(l) != '\0'){
         if(peek(l) == '\\'){
             advance(l);
@@ -158,14 +158,14 @@ Token* next_token(Lexer *l){
 
     advance(l);
 
-    if(c == '"' || (c == 'L') && peek(l) == '"'){
+    if(c == '"' || ((c == 'L') && peek(l) == '"')){
         if(c == 'L'){
             advance(l);
         }
-        return lex_literals(l, '"', TOK_LIT_CHAR);
+        return lex_literals(l, '"', TOK_LIT_STRING);
     }
 
-    if(c == '\'' || (c == 'L') && peek(l) == '\''){
+    if(c == '\'' || ((c == 'L') && peek(l) == '\'')){
         if(c == 'L'){
             advance(l);
         }
@@ -173,9 +173,8 @@ Token* next_token(Lexer *l){
     }
 
     if(is_alpha(c)){
-        advance(l);
         while(1){
-            if(is_alpha(l) || is_digit(l)){
+            if(is_alpha(peek(l)) || is_digit(peek(l))){
                 advance(l);
             }
             else if(peek(l) == '\\'){
@@ -198,7 +197,6 @@ Token* next_token(Lexer *l){
             else{
                 break; // msm coisa
             }
-            advance(l);
         }
 
         uint32_t len = l->forward - l->start;
@@ -300,8 +298,14 @@ Token* next_token(Lexer *l){
         }
         return set_token(l, TOK_NUM_INT);
     }
-
+    
+    // TODO: deixar formatado igual um switch normal, foi uma pessima ideia botar tudo na msm linha
     switch(c){
+        case '#':
+            if(match(l, '#')){
+                return set_token(l, TOK_HASH_HASH);
+            } 
+            return set_token(l, TOK_HASH);
         case '(': return set_token(l, TOK_LPAREN);
         case ')': return set_token(l, TOK_RPAREN);
         case '{': return set_token(l, TOK_LBRACE);
@@ -342,6 +346,14 @@ Token* next_token(Lexer *l){
         
         case '%':
             if(match(l, '=')) return set_token(l, TOK_MOD_ASSIGN);
+            if(match(l, ':')){
+                if(peek(l) == '%' && peek(l) == ':'){
+                    advance(l);
+                    advance(l);
+                    return set_token(l, TOK_HASH_HASH);
+                }
+                return set_token(l, TOK_HASH);
+            }
             return set_token(l, TOK_MOD);
 
         case '!':
@@ -372,6 +384,8 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_SHIFT_LEFT);
             }
             if(match(l, '=')) return set_token(l, TOK_LESS_EQUAL);
+            if(match(l, ':')) return set_token(l, TOK_LBRACKET);
+            if(match(l, '%')) return set_token(l, TOK_LBRACE);
             return set_token(l, TOK_LESS);
         
         case '>':
@@ -380,6 +394,8 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_SHIFT_RIGHT);
             }
             if(match(l, '=')) return set_token(l, TOK_GREATER_EQUAL);
+            if(match(l, ':')) return set_token(l, TOK_RBRACKET);
+            if(match(l, '%')) return set_token(l, TOK_RBRACE);
             return set_token(l, TOK_GREATER);
     }
 

@@ -7,6 +7,8 @@ const char* token_type_to_str(TokenType type){
     switch(type){
         case TOK_EOF: return "TOK_EOF";
         case TOK_ERR: return "TOK_ERR";
+        case TOK_HASH: return "TOK_HASH";
+        case TOK_HASH_HASH: return "TOK_HASH_HASH";
         case TOK_ID: return "TOK_ID";
         case TOK_NUM_INT: return "TOK_NUM_INT";
         case TOK_NUM_FLOAT: return "TOK_NUM_FLOAT";
@@ -94,7 +96,7 @@ const char* token_type_to_str(TokenType type){
         case TOK_KW_BOOL: return "TOK_KW_BOOL";
         case TOK_KW_COMPLEX: return "TOK_KW_COMPLEX";
         case TOK_KW_IMAGINARY: return "TOK_KW_IMAGINARY";
-        default: return "OTHER/OP";
+        default: return "Deu uma merda sinistra";
     }
 }
 
@@ -136,15 +138,6 @@ int main(int argc, char **argv){
     fread(buffer, 1, file_size, file);
     buffer[file_size] = '\0';
     fclose(file);
-
-    for(long i = 0; i < file_size; i++){
-        if(buffer[i] == '#'){
-            while(i < file_size && buffer[i] != '\n' && (i == 0 || buffer[i-1] == '\n')){
-                buffer[i] = ' ';
-                i++;
-            }
-        }
-    }
 
     Lexer *lexer = init_lexer(&compiler_arena, buffer);
     Token *tok;

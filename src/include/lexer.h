@@ -22,7 +22,7 @@ int match(Lexer *l, unsigned char to_match);
 void advance(Lexer *l);
 void skip_whitespace(Lexer *l);
 
-static Token* lex_literals(Lexer *l, unsigned char quote, TokenType type);
+Token* lex_literals(Lexer *l, unsigned char quote, TokenType type);
 
 Token* set_token(Lexer *l, TokenType type);
 Token* next_token(Lexer *l);
