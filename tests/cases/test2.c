@@ -1,7 +1,11 @@
 /*  
-    Autor: ChatGPT 
-    Chat: https://chatgpt.com/share/69b6cd50-9874-8013-a51a-d691e2334bdb
-    Notas: Ele esqueceu de botar digrafos, mas acho que ta funcionando no meu código
+    Autor:  ChatGPT 
+    Chat:   https://chatgpt.com/share/69b6cd50-9874-8013-a51a-d691e2334bdb
+    Notas:  Ele esqueceu de botar digrafos, mas acho que ta funcionando no meu código.
+            Tem alguns outros esquecimentos, mais tarde vou fazer um melhor só pro lexer, mas acho
+            que da pra considerar q meu lexer ta funcionando no momento. Esse código vai ser bom para
+            testar o parser e o restante do compilador no futuro, então vou manter. Foi bom pra saber
+            q os hexadecimais estão funcionando, é muito chato as regras de float hex do C99.
 */
 
 // Teste de lexer C99 sem trigrafos
@@ -108,6 +112,8 @@ int main(void) {
     r ^= 0xFF;
     r <<= 2;
     r |= 0b1010; // extensão comum suportada por alguns compiladores
+    // vhm: 0b não é padrão de C99 (só foi adicionado no C23 a 2 anos atrás se n me engano), não vou adicionar.
+    //      Se algum dia isso virar um compilador de C23 eu fui atropelado por um trem.
 
     // Inline function
     printf("inline add: %d\n", add_inline(3,4));

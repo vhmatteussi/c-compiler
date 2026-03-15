@@ -20,7 +20,7 @@ unsigned char peek_next(Lexer *l){
     if(peek(l) == '\0'){
         return '\0';
     }
-    return l->src[l->forward + sizeof(char)];
+    return l->src[l->forward + 1];
 }
 
 int match(Lexer *l, unsigned char to_match){
@@ -83,7 +83,8 @@ void skip_whitespace(Lexer *l){
 
 Token* set_token(Lexer *l, TokenType type){
     uint32_t len = l->forward - l->start;
-    String *lex_str = intern_string(l->arena, &l->interner, (const char*)&l->src[l->start], len);
+    const char *str = (const char*)&l->src[l->start];
+    String *lex_str = intern_string(l->arena, &l->interner, str, len);
 
     Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
     token->lex = lex_str;
@@ -150,26 +151,29 @@ Token* next_token(Lexer *l){
     l->start = l->forward;
     unsigned char c = peek(l);
 
+    // EOF
     if(c == '\0'){
         return set_token(l, TOK_EOF);
     }
 
     advance(l);
 
-    if(c == '"' || ((c == 'L') && peek_next(l) == '"')){
+    // Literals
+    if(c == '"' || ((c == 'L') && peek(l) == '"')){
         if(c == 'L'){
             advance(l);
         }
         return lex_literals(l, '"', TOK_LIT_STRING);
     }
 
-    if(c == '\'' || ((c == 'L') && peek_next(l) == '\'')){
+    if(c == '\'' || ((c == 'L') && peek(l) == '\'')){
         if(c == 'L'){
             advance(l);
         }
         return lex_literals(l, '\'', TOK_LIT_CHAR);
     }
 
+    // Identifiers e Keywords
     if(is_alpha(c)){
         while(1){
             if(is_alpha(peek(l)) || is_digit(peek(l))){
@@ -177,11 +181,11 @@ Token* next_token(Lexer *l){
             }
             else if(peek(l) == '\\'){
                 if(peek_next(l) == 'u' || peek_next(l) == 'U'){
-                    uint32_t req_digits = (peek_next(l) == 'u') ? 4 : 8;
+                    uint8_t req_digits = (peek_next(l) == 'u') ? 4 : 8;
                     advance(l);
                     advance(l);
 
-                    for(uint32_t i=0; i<req_digits; i++){
+                    for(uint8_t i=0; i<req_digits; i++){
                         if(!is_hex(peek(l))){
                             return set_token(l, TOK_ERR);
                         }
@@ -189,16 +193,17 @@ Token* next_token(Lexer *l){
                     }
                 }
                 else{
-                    break; // deixar o erro para o próximo token
+                    break; // Deixa o erro para o próximo token
                 }
             }
             else{
-                break; // msm coisa
+                break;
             }
         }
 
         uint32_t len = l->forward - l->start;
-        String *lex_str = intern_string(l->arena, &l->interner, (const char*)&l->src[l->start], len);
+        const char *str = (const char*)&l->src[l->start];
+        String *lex_str = intern_string(l->arena, &l->interner, str, len);
         
         Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
         token->lex = lex_str;
@@ -209,6 +214,7 @@ Token* next_token(Lexer *l){
         return token;
     }
 
+    // Numerals
     if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
         int is_float = 0;
 
@@ -297,6 +303,7 @@ Token* next_token(Lexer *l){
         return set_token(l, TOK_NUM_INT);
     }
     
+    // Operators, Separators e Bigraphs
     switch(c){
         case '#':
             if(match(l, '#')){
@@ -330,7 +337,7 @@ Token* next_token(Lexer *l){
                 if(match(l, '.')){
                     return set_token(l, TOK_ELLIPSIS);
                 }
-                return set_token(l, TOK_ERR);
+                return set_token(l, TOK_ERR); // tem q ver isso aqui dps
             }
             return set_token(l, TOK_DOT);
 
@@ -371,6 +378,7 @@ Token* next_token(Lexer *l){
             if(match(l, '=')){
                 return set_token(l, TOK_MOD_ASSIGN);
             }
+            // tem q ver isso aqui dps
             if(match(l, ':')){
                 if(peek(l) == '%' && peek_next(l) == ':'){
                     advance(l);

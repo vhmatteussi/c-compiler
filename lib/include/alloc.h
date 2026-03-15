@@ -4,14 +4,16 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// truque pra saber o alinhamento máximo pq meu compilador não vai saber o que é _Alignas e _Alignof
+// Truque pra saber o alinhamento máximo, já que não tem _Alignas e _Alignof no C99
+// Pega o alinhamento dos tipos fundamentais, melhor do que assumir um alinhamento para uma arquitetura
 typedef union MaxAlign{
-    long long i;
-    long double d;
-    void *p;
-    void (*fn)(void);
+    long long i;        // 8
+    long double d;      // 8 ou 16
+    void *p;            // 8
+    void (*fn)(void);   // 8
 } MaxAlign;
 
+// max(8, 8 ou 16, 8, 8) -> 8 : 16
 static const size_t ARENA_ALIGNMENT = sizeof(MaxAlign);
 
 typedef struct Arena{

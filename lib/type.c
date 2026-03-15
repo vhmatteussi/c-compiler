@@ -28,13 +28,14 @@ uint32_t is_octal(unsigned char c){
     return (unsigned char)(c - '0') < MAX_OCTAL_CHAR;
 }
 
-// muito mais legal do que fazer um switch case
+// comment of the year:
+// https://excalidraw.com/#json=Os8zNbPbNxhyE6jIt16mM,ZMHJHF0ysKZ6McKMvRuiyA
 static const uint64_t escape_mask[4] = {
-    (1ULL<<'"')       | (1ULL<<'\'')     | (1ULL<<'?'), // 0 - 63
-    (1ULL<<('\\'-64)) | (1ULL<<('a'-64)) | (1ULL<<('b'-64)) | (1ULL<<('f'-64)) | // 64 - 127
-     (1ULL<<('n'-64)) | (1ULL<<('r'-64)) | (1ULL<<('t'-64)) | (1ULL<<('v'-64)),  // 64 - 127
-    0, // 128 - 191
-    0  // 192 - 255
+    (1ULL<<'"')       | (1ULL<<'\'')     | (1ULL<<'?'),                             // 0 - 63
+    (1ULL<<('\\'-64)) | (1ULL<<('a'-64)) | (1ULL<<('b'-64)) | (1ULL<<('f'-64)) |    // 64 - 127
+    (1ULL<<('n'-64))  | (1ULL<<('r'-64)) | (1ULL<<('t'-64)) | (1ULL<<('v'-64)),
+    0ULL,                                                                           // 128 - 191
+    0ULL                                                                            // 192 - 255
 };
 
 uint32_t is_in_escape_list(unsigned char c){
@@ -42,5 +43,6 @@ uint32_t is_in_escape_list(unsigned char c){
 }
 
 uint32_t is_whitespace(unsigned char c){
-    return (unsigned char)(c - 1) < ' '; // todo o resto antes do espaço é lixo, menos o \0. Então se o c for 0x00 da um underflow e vira 255
+    // Todo o resto antes do espaço é lixo, menos o \0. Então se o c for 0x00 da um underflow e vira 0xFF
+    return (unsigned char)(c - 1) < ' ';
 }

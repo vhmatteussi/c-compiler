@@ -20,10 +20,10 @@ String *init_string(Arena *a, const char *content){
     const char *src = content;
 
     while(*src){
-        // copia *src (content) para o ponteiro que aponta pro conteúdo da String new_str
+        // Copia *src (content) para o ponteiro que aponta pro conteúdo da String new_str
         *dest++ = *src++;
     }
-    // o fim do while necessáriamente vai ser em lenght+1, então dá só pra jogar o \0 aqui, mas já vai ter um em lenght se tudo der certo
+    // O fim do while necessáriamente vai ser em lenght+1, então dá só pra jogar o \0 aqui, mas já vai ter um em lenght se tudo der certo
     *dest = '\0';
     return new_str;
 }
@@ -56,7 +56,7 @@ String *string_cat(Arena *a, const String *s1, const String *s2){
 
 uint32_t string_cmp(const String *s1, const String *s2){
     if(s1->length != s2->length){
-        return (s1->length > s2->length) ? -1 : -2; // tamanhos diferentes
+        return (s1->length > s2->length) ? -1 : -2;
     }
 
     // s1 e s2 são o mesmo ponteiro
@@ -72,7 +72,6 @@ uint32_t string_cmp(const String *s1, const String *s2){
     return 1;
 }
 
-// inlines talvez sejam inuteis depedendo de como eu for implementar, eu prefiro transformar em um comando invés de sugestão, mas n sei se vai dar
 static inline uint32_t string_eq_raw(String *s1, const char *raw_str, uint32_t lenght){
     if(s1->length != lenght){
         return 0;
@@ -85,7 +84,7 @@ static inline uint32_t string_eq_raw(String *s1, const char *raw_str, uint32_t l
     return 1;
 }
 
-static void intern_keyword(Arena *a, StringInterner *interner, const char *str, TokenType type){
+static inline void intern_keyword(Arena *a, StringInterner *interner, const char *str, TokenType type){
     uint32_t lenght = rawstr_size(str);
     String *kw_str = intern_string(a, interner, str, lenght);
     if(kw_str){
@@ -93,10 +92,40 @@ static void intern_keyword(Arena *a, StringInterner *interner, const char *str, 
     }
 }
 
-void init_interner(Arena *a, StringInterner *interner){
-    for(uint32_t i=0; i<STRING_INTERN_CAP; i++){
-        interner->entries[i] = NULL;
+static inline void resize_interner(Arena *a, StringInterner *interner){
+    // todo: arena_resize
+    uint32_t cap = interner->cap;
+    String **entries = interner->entries;
+
+    uint32_t new_cap = cap * 2;
+    String **new_entries = arena_calloc(a, new_cap, sizeof(String*));
+
+    interner->cap = new_cap;
+    interner->entry_count = 0;
+    interner->entries = new_entries;
+
+    for(uint32_t i=0; i<cap; i++){
+        String *str = entries[i];
+        if(!str){
+            continue;
+        }
+
+        hash_t hash = fnv1a(str->data, str->length);
+        uint32_t idx = hash % interner->cap;
+
+        while(interner->entries[idx] != NULL){
+            idx = (idx + 1) % interner->cap;
+        }
+
+        interner->entries[idx] = str;
+        interner->entry_count++;
     }
+}
+
+void init_interner(Arena *a, StringInterner *interner){
+    interner->cap = INTERN_INITIAL_CAP;
+    interner->entry_count = 0;
+    interner->entries = arena_calloc(a, interner->cap, sizeof(String*));
 
     intern_keyword(a, interner, "char", TOK_KW_CHAR);
     intern_keyword(a, interner, "int", TOK_KW_INT);
@@ -138,20 +167,25 @@ void init_interner(Arena *a, StringInterner *interner){
 }
 
 String *intern_string(Arena *a, StringInterner *interner, const char *str, uint32_t lenght){
+    if((float)interner->entry_count / interner->cap > INTERN_CAP_THRESHOLD){
+        resize_interner(a, interner);
+    }
+
     hash_t hash = fnv1a(str, lenght);
-    uint32_t idx = hash % STRING_INTERN_CAP;
+    uint32_t idx = hash % interner->cap;
 
     while(interner->entries[idx] != NULL){
         String *exists = interner->entries[idx];
         if(string_eq_raw(exists, str, lenght)){
             return exists;
         }
-        idx = (idx + 1) % STRING_INTERN_CAP;
+        idx = (idx + 1) % interner->cap;
     }
 
     String *new_str = (String*)arena_malloc(a, sizeof(String) + lenght + 1);
     
     if(!new_str){
+        // panic
         return NULL;
     }
 
