@@ -17,7 +17,7 @@ typedef struct Lexer{
 
 Lexer *init_lexer(Arena *a, const unsigned char *src);
 unsigned char peek(Lexer *l);
-int match(Lexer *l, unsigned char to_match);
+uint32_t match(Lexer *l, unsigned char to_match);
 
 void advance(Lexer *l);
 void skip_whitespace(Lexer *l);

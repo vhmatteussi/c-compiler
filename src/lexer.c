@@ -23,7 +23,7 @@ unsigned char peek_next(Lexer *l){
     return l->src[l->forward + 1];
 }
 
-int match(Lexer *l, unsigned char to_match){
+uint32_t match(Lexer *l, unsigned char to_match){
     if(peek(l) != to_match){
         return 0;
     }
@@ -100,6 +100,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
         if(peek(l) == '\\'){
             advance(l);
 
+            // Hex escapes
             if(peek(l) == 'x'){
                 advance(l);
 
@@ -111,6 +112,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
                     advance(l);
                 }
             }
+            // Unicode escapes
             else if(peek(l) == 'u' || peek(l) == 'U'){
                 uint32_t req_digits = (peek(l) == 'u') ? 4 : 8;
                 advance(l);
@@ -122,18 +124,21 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
                     advance(l);
                 }
             }
+            // Octal escapes
             else if(is_octal(peek(l))){
                 uint32_t count = 0;
                 while(is_octal(peek(l)) && count < 3){
                     advance(l);
                 }
             }
+            // Common escapes
             else{
                 if(!is_in_escape_list(peek(l))){
                     return set_token(l, TOK_ERR);
                 }
                 advance(l);
             }
+            // No escape
             continue;
         }
         advance(l);
@@ -142,6 +147,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
     if(peek(l) == quote){
         advance(l);
     }
+    // Mais entendível do que retornar o token com um if
     return set_token(l, type);
 }
 
@@ -160,13 +166,15 @@ Token* next_token(Lexer *l){
 
     // Literals
     if(c == '"' || ((c == 'L') && peek(l) == '"')){
+        // String literal
         if(c == 'L'){
             advance(l);
         }
         return lex_literals(l, '"', TOK_LIT_STRING);
     }
-
+    
     if(c == '\'' || ((c == 'L') && peek(l) == '\'')){
+        // Char literal
         if(c == 'L'){
             advance(l);
         }
@@ -176,9 +184,10 @@ Token* next_token(Lexer *l){
     // Identifiers e Keywords
     if(is_alpha(c)){
         while(1){
-            if(is_alpha(peek(l)) || is_digit(peek(l))){
+            if(is_alnum(peek(l))){
                 advance(l);
             }
+            // Unicode escape sequences
             else if(peek(l) == '\\'){
                 if(peek_next(l) == 'u' || peek_next(l) == 'U'){
                     uint8_t req_digits = (peek_next(l) == 'u') ? 4 : 8;
@@ -216,15 +225,17 @@ Token* next_token(Lexer *l){
 
     // Numerals
     if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
-        int is_float = 0;
+        uint32_t is_float = 0;
 
+        // Float sem parte inteira, eg: .5f, .1e-2
         if(c == '.'){
             is_float = 1;
             
             while(is_digit(peek(l))){
                 advance(l);
             }
-
+            
+            // Exponentials
             if(peek(l) == 'e' || peek(l) == 'E'){
                 advance(l);
 
@@ -237,6 +248,7 @@ Token* next_token(Lexer *l){
                 }
             }
         }
+        // Hexadecimal
         else if(c == '0' && (peek(l) == 'x' || peek(l) == 'X')){
             advance(l);
 
@@ -244,6 +256,7 @@ Token* next_token(Lexer *l){
                 advance(l);
             }
 
+            // Float hexs
             if(peek(l) == '.'){
                 is_float = 1;
                 advance(l);
@@ -270,6 +283,7 @@ Token* next_token(Lexer *l){
                 advance(l);
             }
 
+            // Decimal floats, eg: 1.0, 23.9, 0.3
             if(peek(l) == '.'){
                 is_float = 1;
                 advance(l);
@@ -279,6 +293,7 @@ Token* next_token(Lexer *l){
                 }
             }
 
+            // Exponential "integer" (float), eg: 2e8, 10e-5, 3e+2
             if(peek(l) == 'e' || peek(l) == 'E'){
                 is_float = 1;
                 advance(l);
@@ -293,6 +308,7 @@ Token* next_token(Lexer *l){
             }
         }
 
+        // While é melhor, outra parte do compilador tem que lidar com 23ffffff ou 23.233ULL
         while(peek(l) == 'f' || peek(l) == 'F' || peek(l) == 'l' || peek(l) == 'L' || peek(l) == 'u' || peek(l) == 'U'){
             advance(l);
         }
@@ -337,7 +353,7 @@ Token* next_token(Lexer *l){
                 if(match(l, '.')){
                     return set_token(l, TOK_ELLIPSIS);
                 }
-                return set_token(l, TOK_ERR); // tem q ver isso aqui dps
+                return set_token(l, TOK_ERR); // Talvez seja melhor deixar o parser lidar com isso
             }
             return set_token(l, TOK_DOT);
 
@@ -378,12 +394,14 @@ Token* next_token(Lexer *l){
             if(match(l, '=')){
                 return set_token(l, TOK_MOD_ASSIGN);
             }
-            // tem q ver isso aqui dps
             if(match(l, ':')){
-                if(peek(l) == '%' && peek_next(l) == ':'){
-                    advance(l);
-                    advance(l);
-                    return set_token(l, TOK_HASH_HASH);
+                if(peek(l) == '%'){
+                    if(peek_next(l) == ':'){
+                        advance(l);
+                        advance(l);
+                        return set_token(l, TOK_HASH_HASH);
+                    }
+                    // Vou deixar isso para o parser
                 }
                 return set_token(l, TOK_HASH);
             }

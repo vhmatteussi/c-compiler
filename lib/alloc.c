@@ -21,13 +21,13 @@ void *arena_malloc(Arena *a, size_t size){
     size_t aligned_size = _align_up(size, ARENA_ALIGNMENT);
 
     if(a->offset + aligned_size > a->capacity){
-        //panic
-        
         /*
-            Código inútil mas engraçado para forçar um segfault
-            volatile fala pro gcc não otimizar a variável de forma alguma
-            quando ela aponta pra posição de memória 1, da segfault
-            pq essa posição é reservada pelo OS
+            Código inútil mas engraçado para forçar um segfault.
+            Volatile fala pro gcc não otimizar a variável de forma alguma,
+            quando ela aponta pra posição de memória 1 da segfault
+            pq essa posição é reservada pelo OS.
+            
+            Quando eu fizer a função de panic do compilador ela vai rodar aqui.
         */
         volatile int32_t *crash = 0;
         *crash = 1;

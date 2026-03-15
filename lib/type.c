@@ -16,6 +16,10 @@ uint32_t is_alpha(unsigned char c){
     return is_lower(c) || is_upper(c) || c == '_';
 }
 
+uint32_t is_alnum(unsigned char c){
+    return is_digit(c) || is_alpha(c);
+}
+
 uint32_t is_alpha_hex(unsigned char c){
     return ((unsigned char)(c - 'a') < MAX_HEX_CHAR || (unsigned char)(c - 'A') < MAX_HEX_CHAR);
 }

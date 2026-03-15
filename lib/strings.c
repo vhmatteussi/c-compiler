@@ -135,7 +135,7 @@ void init_interner(Arena *a, StringInterner *interner){
     intern_keyword(a, interner, "double", TOK_KW_DOUBLE);
     intern_keyword(a, interner, "void", TOK_KW_VOID);
     intern_keyword(a, interner, "signed", TOK_KW_SIGNED);
-    intern_keyword(a, interner, "unsgined", TOK_KW_UNSIGNED);
+    intern_keyword(a, interner, "unsigned", TOK_KW_UNSIGNED);
     intern_keyword(a, interner, "static", TOK_KW_STATIC);
     intern_keyword(a, interner, "extern", TOK_KW_EXTERN);
     intern_keyword(a, interner, "auto", TOK_KW_AUTO);
@@ -185,7 +185,6 @@ String *intern_string(Arena *a, StringInterner *interner, const char *str, uint3
     String *new_str = (String*)arena_malloc(a, sizeof(String) + lenght + 1);
     
     if(!new_str){
-        // panic
         return NULL;
     }
 
