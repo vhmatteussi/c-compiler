@@ -7,6 +7,7 @@
 
 static const uint8_t MAX_NUM = 10;
 static const uint8_t MAX_CHAR = 26;
+static const uint8_t MAX_HEX_CHAR = 8;
 
 // algumas dessas funções não se comportam igual ao ctype e servem só pro lexer
 
@@ -14,6 +15,8 @@ uint32_t is_digit(unsigned char c);
 uint32_t is_lower(unsigned char c);
 uint32_t is_upper(unsigned char c);
 uint32_t is_alpha(unsigned char c);
+uint32_t is_alpha_hex(unsigned char c);
+uint32_t is_hex(unsigned char c);
 uint32_t is_whitespace(unsigned char c);
 
 #endif

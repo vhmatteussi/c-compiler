@@ -16,6 +16,14 @@ uint32_t is_alpha(unsigned char c){
     return is_lower(c) || is_upper(c) || c == '_';
 }
 
+uint32_t is_alpha_hex(unsigned char c){
+    return ((unsigned char)(c - 'a') < MAX_HEX_CHAR || (unsigned char)(c - 'A') < MAX_HEX_CHAR);
+}
+
+uint32_t is_hex(unsigned char c){
+    return is_alpha_hex(c) || is_digit(c);
+}
+
 uint32_t is_whitespace(unsigned char c){
     return (unsigned char)(c - 1) < ' '; // todo o resto antes do espaço é lixo, menos o \0. Então se o c for 0x00 da um underflow e vira 255
 }

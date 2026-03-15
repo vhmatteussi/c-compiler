@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+// C be like:
 typedef struct String String;
 
 typedef enum TokenType{
@@ -55,7 +56,7 @@ typedef enum TokenType{
     // Literals
     TOK_LIT_CHAR,
     TOK_LIT_STRING,
-    //Punctuators
+    // Punctuators
     TOK_LPAREN,
     TOK_RPAREN,
     TOK_LBRACKET,

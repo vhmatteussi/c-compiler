@@ -122,18 +122,89 @@ Token* next_token(Lexer *l){
         return token;
     }
 
-    if(is_digit(c)){
-        while(is_digit(peek(l))){
-            advance(l);
-        }
-        if(peek(l) == '.'){
-            advance(l);
+    if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
+        int is_float = 0;
+
+        if(c == '.'){
+            is_float = 1;
+            
             while(is_digit(peek(l))){
                 advance(l);
             }
-            if(peek(l) == 'f' || peek(l) == 'F'){
+
+            if(peek(l) == 'e' || peek(l) == 'E'){
+                advance(l);
+
+                if(peek(l) == '-' || peek(l) == '+'){
+                    advance(l);
+                }
+
+                while(is_digit(peek(l))){
+                    advance(l);
+                }
+            }
+        }
+        else if(c == '0' && (peek(l) == 'x' || peek(l) == 'X')){
+            advance(l);
+
+            while(is_hex(peek(l))){
                 advance(l);
             }
+
+            if(peek(l) == '.'){
+                is_float = 1;
+                advance(l);
+                while(is_hex(peek(l))){
+                    advance(l);
+                }
+            }
+            
+            if(peek(l) == 'p' || peek(l) == 'P'){
+                is_float = 1;
+                advance(l);
+
+                if(peek(l) == '+' || peek(l) == '-'){
+                    advance(l);
+                }
+
+                while(is_digit(peek(l))){
+                    advance(l);
+                }
+            }
+        }
+        else{
+            while(is_digit(peek(l))){
+                advance(l);
+            }
+
+            if(peek(l) == '.'){
+                is_float = 1;
+                advance(l);
+
+                while(is_digit(peek(l))){
+                    advance(l);
+                }
+            }
+
+            if(peek(l) == 'e' || peek(l) == 'E'){
+                is_float = 1;
+                advance(l);
+
+                if(peek(l) == '-' || peek(l) == '+'){
+                    advance(l);
+                }
+
+                while(is_digit(peek(l))){
+                    advance(l);
+                }
+            }
+        }
+
+        while(peek(l) == 'f' || peek(l) == 'F' || peek(l) == 'l' || peek(l) == 'L' || peek(l) == 'u' || peek(l) == 'U'){
+            advance(l);
+        }
+
+        if(is_float){
             return set_token(l, TOK_NUM_FLOAT);
         }
         return set_token(l, TOK_NUM_INT);
@@ -153,7 +224,7 @@ Token* next_token(Lexer *l){
     }
 
     if(c == '\''){
-        while(peek(l) != 0x27 && peek(l) != '\0'){
+        while(peek(l) != '\'' && peek(l) != '\0'){
             if(peek(l) == '\\'){
                 advance(l);
             }
@@ -165,6 +236,7 @@ Token* next_token(Lexer *l){
         return set_token(l, TOK_LIT_CHAR);
     }
 
+    // esse switch funciona para todos os operadores e separadores
     switch(c){
         case '(': return set_token(l, TOK_LPAREN);
         case ')': return set_token(l, TOK_RPAREN);
@@ -182,15 +254,6 @@ Token* next_token(Lexer *l){
                 advance(l);
                 advance(l);
                 return set_token(l, TOK_ELLIPSIS);
-            }
-            if(is_digit(peek(l))){
-                while(is_digit(peek(l))){
-                    advance(l);
-                }
-                if(peek(l) == 'f' || peek(l) == 'F'){
-                    advance(l);
-                }
-                return set_token(l, TOK_NUM_FLOAT);
             }
             return set_token(l, TOK_DOT);
 
