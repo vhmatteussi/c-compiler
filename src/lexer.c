@@ -94,7 +94,59 @@ Token* set_token(Lexer *l, TokenType type){
     return token;
 }
 
+static Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
+    while(peek(l) != quote && peek(l) != '\0'){
+        if(peek(l) == '\\'){
+            advance(l);
+
+            if(peek(l) == 'x'){
+                advance(l);
+
+                if(!is_hex(peek(l))){
+                    return set_token(l, TOK_ERR);
+                }
+
+                while(is_hex(peek(l))){
+                    advance(l);
+                }
+            }
+            else if(peek(l) == 'u' || peek(l) == 'U'){
+                uint32_t req_digits = (peek(l) == 'u') ? 4 : 8;
+                advance(l);
+
+                for(uint32_t i=0; i<req_digits; i++){
+                    if(!is_hex(peek(l))){
+                        return set_token(l, TOK_ERR);
+                    }
+                    advance(l);
+                }
+            }
+            else if(is_octal(peek(l))){
+                uint32_t count = 0;
+                while(is_octal(peek(l)) && count < 3){
+                    advance(l);
+                }
+            }
+            else{
+                if(!is_in_escape_list(peek(l))){
+                    return set_token(l, TOK_ERR);
+                }
+            }
+            continue;
+        }
+        advance(l);
+    }
+
+    if(peek(l) == quote){
+        advance(l);
+    }
+    return set_token(l, type);
+}
+
 Token* next_token(Lexer *l){
+
+    // TODO: encapsular outras lógicas parecidas igual eu fiz com as aspas
+
     skip_whitespace(l);
 
     l->start = l->forward;
@@ -106,10 +158,49 @@ Token* next_token(Lexer *l){
 
     advance(l);
 
-    if(is_alpha(c)){
-        while(is_alpha(peek(l)) || is_digit(peek(l))){
+    if(c == '"' || (c == 'L') && peek(l) == '"'){
+        if(c == 'L'){
             advance(l);
         }
+        return lex_literals(l, '"', TOK_LIT_CHAR);
+    }
+
+    if(c == '\'' || (c == 'L') && peek(l) == '\''){
+        if(c == 'L'){
+            advance(l);
+        }
+        return lex_literals(l, '\'', TOK_LIT_CHAR);
+    }
+
+    if(is_alpha(c)){
+        advance(l);
+        while(1){
+            if(is_alpha(l) || is_digit(l)){
+                advance(l);
+            }
+            else if(peek(l) == '\\'){
+                if(peek_next(l) == 'u' || peek_next(l) == 'U'){
+                    uint32_t req_digits = (peek_next(l) == 'u') ? 4 : 8;
+                    advance(l);
+                    advance(l);
+
+                    for(uint32_t i=0; i<req_digits; i++){
+                        if(!is_hex(peek(l))){
+                            return set_token(l, TOK_ERR);
+                        }
+                        advance(l);
+                    }
+                }
+                else{
+                    break; // deixar o erro para o próximo token
+                }
+            }
+            else{
+                break; // msm coisa
+            }
+            advance(l);
+        }
+
         uint32_t len = l->forward - l->start;
         String *lex_str = intern_string(l->arena, &l->interner, (const char*)&l->src[l->start], len);
         
@@ -210,33 +301,6 @@ Token* next_token(Lexer *l){
         return set_token(l, TOK_NUM_INT);
     }
 
-    if(c == '"'){
-        while(peek(l) != '"' && peek(l) != '\0'){
-            if(peek(l) == '\\'){
-                advance(l);
-            }
-            advance(l);
-        }
-        if(peek(l) == '"'){
-            advance(l);
-        }
-        return set_token(l, TOK_LIT_STRING);
-    }
-
-    if(c == '\''){
-        while(peek(l) != '\'' && peek(l) != '\0'){
-            if(peek(l) == '\\'){
-                advance(l);
-            }
-            advance(l);
-        }
-        if(peek(l) == '\''){
-            advance(l);
-        }
-        return set_token(l, TOK_LIT_CHAR);
-    }
-
-    // esse switch funciona para todos os operadores e separadores
     switch(c){
         case '(': return set_token(l, TOK_LPAREN);
         case ')': return set_token(l, TOK_RPAREN);

@@ -24,6 +24,23 @@ uint32_t is_hex(unsigned char c){
     return is_alpha_hex(c) || is_digit(c);
 }
 
+uint32_t is_octal(unsigned char c){
+    return (unsigned char)(c - '0') < MAX_OCTAL_CHAR;
+}
+
+// muito mais legal do que fazer um switch case
+static const uint64_t escape_mask[4] = {
+    (1ULL<<'"')       | (1ULL<<'\'')     | (1ULL<<'?'),
+    (1ULL<<('\\'-64)) | (1ULL<<('a'-64)) | (1ULL<<('b'-64)) | (1ULL<<('f'-64)) |
+     (1ULL<<('n'-64)) | (1ULL<<('r'-64)) | (1ULL<<('t'-64)) | (1ULL<<('v'-64)),
+    0,
+    0
+};
+
+uint32_t is_in_escape_list(unsigned char c){
+    return (escape_mask[c >> 6] >> (c & 63)) & 1;
+}
+
 uint32_t is_whitespace(unsigned char c){
     return (unsigned char)(c - 1) < ' '; // todo o resto antes do espaço é lixo, menos o \0. Então se o c for 0x00 da um underflow e vira 255
 }
