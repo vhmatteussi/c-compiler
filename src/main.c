@@ -70,22 +70,29 @@ int main(int argc, char *argv[]){
 
     Lexer *lexer = init_lexer(&compiler_arena, source_code);
     Token *tok;
+    Token *error_list[1000];
+    int error_count=0;
 
     printf("%-5s | %-5s | %-18s | %s\n", "LINE", "COL", "TYPE", "LEX");
     printf("---------------------------------------\n");
 
     do{
         tok = next_token(lexer);
+        if(tok->type == TOK_ERR){
+            error_list[error_count] = tok;
+            error_count++;
+        }
         printf("%-5zu | %-5zu | %-15s | %s\n", tok->line, tok->col, token_to_str(tok->type), tok->lex->data);
-    }while(tok->type != TOK_EOF && tok->type != TOK_ERR);
+    }while(tok->type != TOK_EOF);
 
-    if(tok->type == TOK_ERR){
-        printf("ERROR: at line %zu, col %zu. Invalid char: '%s'\n", 
-               tok->line, tok->col, tok->lex->data);
+    printf("Done with %d errors:\n", error_count);
+    printf("---------------------------------------\n");
+
+    for(int i=0; i<error_count; i++){
+        printf("at line: %zu and col: %zu, invalid token: %s\n", error_list[i]->line, error_list[i]->col, error_list[i]->lex->data);
     }
-    else{
-        printf("done, no errors\n");
-    }
+
+    printf("---------------------------------------\n");
 
     free(backing_mem);
     exit(0);
