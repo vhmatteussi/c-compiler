@@ -227,7 +227,7 @@ Token* next_token(Lexer *l){
     if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
         uint32_t is_float = 0;
 
-        // Float sem parte inteira, eg: .5f, .1e-2
+        // Float sem parte inteira, e.g. .5f, .1e-2
         if(c == '.'){
             is_float = 1;
             
@@ -243,6 +243,10 @@ Token* next_token(Lexer *l){
                     advance(l);
                 }
 
+                if(!is_digit(peek(l))){
+                    return set_token(l, TOK_ERR);
+                }
+
                 while(is_digit(peek(l))){
                     advance(l);
                 }
@@ -252,8 +256,14 @@ Token* next_token(Lexer *l){
         else if(c == '0' && (peek(l) == 'x' || peek(l) == 'X')){
             advance(l);
 
+            uint32_t has_hex_digits = 0;
+            uint32_t has_fraction_digits = 0;
+            uint32_t has_exp_digits = 0;
+            uint32_t has_exp = 0;
+
             while(is_hex(peek(l))){
                 advance(l);
+                has_hex_digits = 1;
             }
 
             // Float hexs
@@ -262,11 +272,14 @@ Token* next_token(Lexer *l){
                 advance(l);
                 while(is_hex(peek(l))){
                     advance(l);
+                    has_fraction_digits = 1;
                 }
             }
             
             if(peek(l) == 'p' || peek(l) == 'P'){
                 is_float = 1;
+                has_exp = 1;
+
                 advance(l);
 
                 if(peek(l) == '+' || peek(l) == '-'){
@@ -275,6 +288,21 @@ Token* next_token(Lexer *l){
 
                 while(is_digit(peek(l))){
                     advance(l);
+                    has_exp_digits = 1;
+                }
+
+                if(!has_exp_digits){
+                    return set_token(l, TOK_ERR);
+                }
+            }
+
+            if(is_float){
+                if(!has_exp){
+                    return set_token(l, TOK_ERR);
+                }
+
+                if(!has_hex_digits && !has_fraction_digits && !has_exp){
+                    return set_token(l, TOK_ERR);
                 }
             }
         }
@@ -283,7 +311,7 @@ Token* next_token(Lexer *l){
                 advance(l);
             }
 
-            // Decimal floats, eg: 1.0, 23.9, 0.3
+            // Decimal floats, e.g. 1.0, 23.9, 0.3
             if(peek(l) == '.'){
                 is_float = 1;
                 advance(l);
@@ -293,7 +321,7 @@ Token* next_token(Lexer *l){
                 }
             }
 
-            // Exponential "integer" (float), eg: 2e8, 10e-5, 3e+2
+            // Exponential "integer" (float), e.g. 2e8, 10e-5, 3e+2
             if(peek(l) == 'e' || peek(l) == 'E'){
                 is_float = 1;
                 advance(l);
@@ -302,15 +330,53 @@ Token* next_token(Lexer *l){
                     advance(l);
                 }
 
+                if(!is_digit(peek(l))){
+                    return set_token(l, TOK_ERR);
+                }
+
                 while(is_digit(peek(l))){
                     advance(l);
                 }
             }
         }
 
-        // While é melhor, outra parte do compilador tem que lidar com 23ffffff ou 23.233ULL
-        while(peek(l) == 'f' || peek(l) == 'F' || peek(l) == 'l' || peek(l) == 'L' || peek(l) == 'u' || peek(l) == 'U'){
+        // Sufixos de float
+        if(peek(l) == 'f' || peek(l) == 'F'){
+            is_float = 1;
             advance(l);
+        }
+        else if((peek(l) == 'l' || peek(l) == 'L') && (peek_next(l) == 'f' || peek_next(l) == 'F')){
+            is_float = 1;
+            advance(l);
+            advance(l);
+        }
+        // Sufixos de int
+        else if(!is_float){
+            if(peek(l) == 'u' || peek(l) == 'U'){
+                advance(l);
+                if(peek(l) == 'l' || peek(l) == 'L'){
+                    advance(l);
+                    if(peek(l) == 'l' || peek(l) == 'L'){
+                        advance(l);
+                    }
+                }
+            }
+            else if(peek(l) == 'l' || peek(l) == 'L'){
+                advance(l);
+                if(peek(l) == 'l' || peek(l) == 'L'){
+                    advance(l);
+                }
+                if(peek(l) == 'u' || peek(l) == 'U'){
+                    advance(l);
+                }
+            }
+        }
+        // Handle de erros de sufixo
+        if(is_alnum(peek(l))){
+            while(is_alnum(peek(l))){
+                advance(l);
+            }
+            return set_token(l, TOK_ERR);
         }
 
         if(is_float){
@@ -353,7 +419,7 @@ Token* next_token(Lexer *l){
                 if(match(l, '.')){
                     return set_token(l, TOK_ELLIPSIS);
                 }
-                return set_token(l, TOK_ERR); // Talvez seja melhor deixar o parser lidar com isso
+                return set_token(l, TOK_ERR);
             }
             return set_token(l, TOK_DOT);
 
@@ -395,13 +461,11 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_MOD_ASSIGN);
             }
             if(match(l, ':')){
-                if(peek(l) == '%'){
-                    if(peek_next(l) == ':'){
-                        advance(l);
-                        advance(l);
+                if(match(l, '%')){
+                    if(match(l, ':')){
                         return set_token(l, TOK_HASH_HASH);
                     }
-                    // Vou deixar isso para o parser
+                    return set_token(l, TOK_ERR);
                 }
                 return set_token(l, TOK_HASH);
             }

@@ -19,6 +19,7 @@ unsigned long main(void* hello){
     printf("中国将主宰世界，去他妈的美国");
     ...
     .
+    ..
     ->
     [{(129843)}];
     ;
@@ -32,10 +33,10 @@ unsigned long main(void* hello){
     //return;
 
     "return;"
-
     "\"return;"
 
     return 1293.232ULLLLLLL;
+    float not_a_hex_f = 0x29.p
 }
 
 #endif
