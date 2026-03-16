@@ -3,109 +3,107 @@
 
 #include <stddef.h>
 
+#define TOKEN_LIST \
+        X(TOK_EOF) \
+        X(TOK_ERR) \
+        X(TOK_HASH) \
+        X(TOK_HASH_HASH) \
+        X(TOK_ID) \
+        X(TOK_KW_CHAR) \
+        X(TOK_KW_INT) \
+        X(TOK_KW_SHORT) \
+        X(TOK_KW_LONG) \
+        X(TOK_KW_FLOAT) \
+        X(TOK_KW_DOUBLE) \
+        X(TOK_KW_VOID) \
+        X(TOK_KW_SIGNED) \
+        X(TOK_KW_UNSIGNED) \
+        X(TOK_KW_STATIC) \
+        X(TOK_KW_EXTERN) \
+        X(TOK_KW_AUTO) \
+        X(TOK_KW_VOLATILE) \
+        X(TOK_KW_REGISTER) \
+        X(TOK_KW_GOTO) \
+        X(TOK_KW_IF) \
+        X(TOK_KW_ELSE) \
+        X(TOK_KW_SWITCH) \
+        X(TOK_KW_CASE) \
+        X(TOK_KW_DEFAULT) \
+        X(TOK_KW_BREAK) \
+        X(TOK_KW_CONTINUE) \
+        X(TOK_KW_DO) \
+        X(TOK_KW_WHILE) \
+        X(TOK_KW_FOR) \
+        X(TOK_KW_RETURN) \
+        X(TOK_KW_ENUM) \
+        X(TOK_KW_STRUCT) \
+        X(TOK_KW_UNION) \
+        X(TOK_KW_TYPEDEF) \
+        X(TOK_KW_SIZEOF) \
+        X(TOK_KW_INLINE) \
+        X(TOK_KW_RESTRICT) \
+        X(TOK_KW_BOOL) \
+        X(TOK_KW_COMPLEX) \
+        X(TOK_KW_IMAGINARY) \
+        X(TOK_KW_PRAGMA) \
+        X(TOK_NUM_INT) \
+        X(TOK_NUM_FLOAT) \
+        X(TOK_LIT_CHAR) \
+        X(TOK_LIT_STRING) \
+        X(TOK_LPAREN) \
+        X(TOK_RPAREN) \
+        X(TOK_LBRACKET) \
+        X(TOK_RBRACKET) \
+        X(TOK_LBRACE) \
+        X(TOK_RBRACE) \
+        X(TOK_SEMICOLON) \
+        X(TOK_COMMA) \
+        X(TOK_DOT) \
+        X(TOK_ARROW) \
+        X(TOK_QUESTION) \
+        X(TOK_COLON) \
+        X(TOK_ELLIPSIS) \
+        X(TOK_PLUS) \
+        X(TOK_MINUS) \
+        X(TOK_STAR) \
+        X(TOK_SLASH) \
+        X(TOK_MOD) \
+        X(TOK_INC) \
+        X(TOK_DEC) \
+        X(TOK_EQUAL_EQUAL) \
+        X(TOK_NOT_EQUAL) \
+        X(TOK_LESS) \
+        X(TOK_GREATER) \
+        X(TOK_LESS_EQUAL) \
+        X(TOK_GREATER_EQUAL) \
+        X(TOK_LOGICAL_AND) \
+        X(TOK_LOGICAL_OR) \
+        X(TOK_LOGICAL_NOT) \
+        X(TOK_BIT_AND) \
+        X(TOK_BIT_OR) \
+        X(TOK_BIT_XOR) \
+        X(TOK_BIT_NOT) \
+        X(TOK_SHIFT_LEFT) \
+        X(TOK_SHIFT_RIGHT) \
+        X(TOK_ASSIGN) \
+        X(TOK_PLUS_ASSIGN) \
+        X(TOK_MINUS_ASSIGN) \
+        X(TOK_STAR_ASSIGN) \
+        X(TOK_SLASH_ASSIGN) \
+        X(TOK_MOD_ASSIGN) \
+        X(TOK_SHL_ASSIGN) \
+        X(TOK_SHR_ASSIGN) \
+        X(TOK_AND_ASSIGN) \
+        X(TOK_XOR_ASSIGN) \
+        X(TOK_OR_ASSIGN)
+
 // C be like:
 typedef struct String String;
 
 typedef enum TokenType{
-    // Special
-    TOK_EOF,
-    TOK_ERR,
-    TOK_HASH,
-    TOK_HASH_HASH,
-    // Identifier
-    TOK_ID,
-    // Keywords
-    TOK_KW_CHAR,
-    TOK_KW_INT,
-    TOK_KW_SHORT,
-    TOK_KW_LONG,
-    TOK_KW_FLOAT,
-    TOK_KW_DOUBLE,
-    TOK_KW_VOID,
-    TOK_KW_SIGNED,
-    TOK_KW_UNSIGNED,
-    TOK_KW_STATIC,
-    TOK_KW_EXTERN,
-    TOK_KW_AUTO,
-    TOK_KW_VOLATILE,
-    TOK_KW_REGISTER,
-    TOK_KW_GOTO,
-    TOK_KW_IF,
-    TOK_KW_ELSE,
-    TOK_KW_SWITCH,
-    TOK_KW_CASE,
-    TOK_KW_DEFAULT,
-    TOK_KW_BREAK,
-    TOK_KW_CONTINUE,
-    TOK_KW_DO,
-    TOK_KW_WHILE,
-    TOK_KW_FOR,
-    TOK_KW_RETURN,
-    TOK_KW_ENUM,
-    TOK_KW_STRUCT,
-    TOK_KW_UNION,
-    TOK_KW_TYPEDEF,
-    TOK_KW_SIZEOF,
-    TOK_KW_INLINE,
-    TOK_KW_RESTRICT,
-    TOK_KW_BOOL,
-    TOK_KW_COMPLEX,
-    TOK_KW_IMAGINARY,
-    TOK_KW_PRAGMA,
-    // Numbers
-    TOK_NUM_INT,
-    TOK_NUM_FLOAT,
-    // Literals
-    TOK_LIT_CHAR,
-    TOK_LIT_STRING,
-    // Punctuators
-    TOK_LPAREN,
-    TOK_RPAREN,
-    TOK_LBRACKET,
-    TOK_RBRACKET,
-    TOK_LBRACE,
-    TOK_RBRACE,
-    TOK_SEMICOLON,
-    TOK_COMMA,
-    TOK_DOT,
-    TOK_ARROW,
-    TOK_QUESTION,
-    TOK_COLON,
-    TOK_ELLIPSIS,
-    // Operators
-    TOK_PLUS,
-    TOK_MINUS,
-    TOK_STAR,
-    TOK_SLASH,
-    TOK_MOD,
-    TOK_INC,
-    TOK_DEC,
-    TOK_EQUAL_EQUAL,
-    TOK_NOT_EQUAL,
-    TOK_LESS,
-    TOK_GREATER,
-    TOK_LESS_EQUAL,
-    TOK_GREATER_EQUAL,
-    TOK_LOGICAL_AND,
-    TOK_LOGICAL_OR,
-    TOK_LOGICAL_NOT,
-    TOK_BIT_AND,
-    TOK_BIT_OR,
-    TOK_BIT_XOR,
-    TOK_BIT_NOT,
-    TOK_SHIFT_LEFT,
-    TOK_SHIFT_RIGHT,
-    TOK_ASSIGN,
-    TOK_PLUS_ASSIGN,
-    TOK_MINUS_ASSIGN,
-    TOK_STAR_ASSIGN,
-    TOK_SLASH_ASSIGN,
-    TOK_MOD_ASSIGN,
-    TOK_SHL_ASSIGN,
-    TOK_SHR_ASSIGN,
-    TOK_AND_ASSIGN,
-    TOK_XOR_ASSIGN,
-    TOK_OR_ASSIGN,
+    #define X(name) name,
+        TOKEN_LIST
+    #undef X
 } TokenType;
 
 typedef struct Token{
