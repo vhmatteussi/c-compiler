@@ -3,10 +3,12 @@
 Lexer *init_lexer(Arena *a, const unsigned char *src){
     Lexer *l = (Lexer*)arena_malloc(a, sizeof(Lexer));
     l->src = src;
-    l->start = 0;
+    l->start.pointer = 0;
+    l->start.line = 0;
+    l->start.col = 0;
     l->forward = 0;
-    l->line = 0;
-    l->col = 0;
+    l->line = 1;
+    l->col = 1;
     l->arena = a;
     init_interner(a, &l->interner);
     return l;
@@ -41,7 +43,7 @@ void advance(Lexer *l){
 
     if(c == '\n'){
         l->line++;
-        l->col = 0;
+        l->col = 1;
     }
     else{
         l->col++;
@@ -82,15 +84,15 @@ void skip_whitespace(Lexer *l){
 }
 
 Token* set_token(Lexer *l, TokenType type){
-    uint32_t len = l->forward - l->start;
-    const char *str = (const char*)&l->src[l->start];
+    uint32_t len = l->forward - l->start.pointer;
+    const char *str = (const char*)&l->src[l->start.pointer];
     String *lex_str = intern_string(l->arena, &l->interner, str, len);
 
     Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
     token->lex = lex_str;
     token->type = type;
-    token->line = l->line;
-    token->col = l->col;
+    token->line = l->start.line;
+    token->col = l->start.col;
     
     return token;
 }
@@ -129,6 +131,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
                 uint32_t count = 0;
                 while(is_octal(peek(l)) && count < 3){
                     advance(l);
+                    count++;
                 }
             }
             // Common escapes
@@ -154,7 +157,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
 Token* next_token(Lexer *l){
     skip_whitespace(l);
 
-    l->start = l->forward;
+    l->start.pointer = l->forward;
     unsigned char c = peek(l);
 
     // EOF
@@ -177,6 +180,9 @@ Token* next_token(Lexer *l){
         // Char literal
         if(c == 'L'){
             advance(l);
+        }
+        if(peek_next(l) != '\'' || peek_next(l) != '\\'){
+            return set_token(l, TOK_ERR);
         }
         return lex_literals(l, '\'', TOK_LIT_CHAR);
     }
@@ -210,8 +216,8 @@ Token* next_token(Lexer *l){
             }
         }
 
-        uint32_t len = l->forward - l->start;
-        const char *str = (const char*)&l->src[l->start];
+        uint32_t len = l->forward - l->start.pointer;
+        const char *str = (const char*)&l->src[l->start.pointer];
         String *lex_str = intern_string(l->arena, &l->interner, str, len);
         
         Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
@@ -226,6 +232,7 @@ Token* next_token(Lexer *l){
     // Numerals
     if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
         uint32_t is_float = 0;
+        uint32_t hex_float_flag = 0;
 
         // Float sem parte inteira, e.g. .5f, .1e-2
         if(c == '.'){
@@ -304,6 +311,10 @@ Token* next_token(Lexer *l){
                 if(!has_hex_digits && !has_fraction_digits && !has_exp){
                     return set_token(l, TOK_ERR);
                 }
+
+                if(has_hex_digits){
+                    hex_float_flag = 1;    
+                }
             }
         }
         else{
@@ -345,10 +356,15 @@ Token* next_token(Lexer *l){
             is_float = 1;
             advance(l);
         }
-        else if((peek(l) == 'l' || peek(l) == 'L') && (peek_next(l) == 'f' || peek_next(l) == 'F')){
-            is_float = 1;
-            advance(l);
-            advance(l);
+        else if(peek(l) == 'l' || peek(l) == 'L'){
+            if(is_float && hex_float_flag){
+                advance(l);
+            }
+            else if(peek_next(l) == 'f' || peek_next(l) == 'F'){
+                is_float = 1;
+                advance(l);
+                advance(l);
+            }
         }
         // Sufixos de int
         else if(!is_float){
@@ -385,7 +401,7 @@ Token* next_token(Lexer *l){
         return set_token(l, TOK_NUM_INT);
     }
     
-    // Operators, Separators e Bigraphs
+    // Operators e Separators
     switch(c){
         case '#':
             if(match(l, '#')){
@@ -460,15 +476,6 @@ Token* next_token(Lexer *l){
             if(match(l, '=')){
                 return set_token(l, TOK_MOD_ASSIGN);
             }
-            if(match(l, ':')){
-                if(match(l, '%')){
-                    if(match(l, ':')){
-                        return set_token(l, TOK_HASH_HASH);
-                    }
-                    return set_token(l, TOK_ERR);
-                }
-                return set_token(l, TOK_HASH);
-            }
             return set_token(l, TOK_MOD);
 
         case '!':
@@ -517,12 +524,6 @@ Token* next_token(Lexer *l){
             if(match(l, '=')){
                 return set_token(l, TOK_LESS_EQUAL);
             }
-            if(match(l, ':')){
-                return set_token(l, TOK_LBRACKET);
-            }
-            if(match(l, '%')){
-                return set_token(l, TOK_LBRACE);
-            }
             return set_token(l, TOK_LESS);
         
         case '>':
@@ -534,12 +535,6 @@ Token* next_token(Lexer *l){
             }
             if(match(l, '=')){
                 return set_token(l, TOK_GREATER_EQUAL);
-            }
-            if(match(l, ':')){
-                return set_token(l, TOK_RBRACKET);
-            }
-            if(match(l, '%')){
-                return set_token(l, TOK_RBRACE);
             }
             return set_token(l, TOK_GREATER);
     }

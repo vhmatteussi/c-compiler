@@ -5,9 +5,16 @@
 #include "strings.h"
 #include "type.h"
 
+// workaround absurdo pq fiquei com preguiça de mudar o set_token. Outra hora eu mudo a função
+typedef struct StartPointer{
+    size_t pointer;
+    size_t line;
+    size_t col;
+} StartPointer;
+
 typedef struct Lexer{
     const unsigned char *src;
-    size_t start;
+    StartPointer start;
     size_t forward;
     size_t line;
     size_t col;
