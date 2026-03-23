@@ -224,8 +224,8 @@ Token* next_token(Lexer *l){
         Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
         token->lex = lex_str;
         token->type = lex_str->kw_type; 
-        token->line = l->line;
-        token->col = l->col;
+        token->line = tok_line;
+        token->col = tok_col;
         
         return token;
     }
