@@ -3,9 +3,7 @@
 Lexer *init_lexer(Arena *a, const unsigned char *src){
     Lexer *l = (Lexer*)arena_malloc(a, sizeof(Lexer));
     l->src = src;
-    l->start.pointer = 0;
-    l->start.line = 0;
-    l->start.col = 0;
+    l->start = 0;
     l->forward = 0;
     l->line = 1;
     l->col = 1;
@@ -83,21 +81,21 @@ void skip_whitespace(Lexer *l){
     }
 }
 
-Token* set_token(Lexer *l, TokenType type){
-    uint32_t len = l->forward - l->start.pointer;
-    const char *str = (const char*)&l->src[l->start.pointer];
+Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
+    uint32_t len = l->forward - l->start;
+    const char *str = (const char*)&l->src[l->start];
     String *lex_str = intern_string(l->arena, &l->interner, str, len);
 
     Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
     token->lex = lex_str;
     token->type = type;
-    token->line = l->start.line;
-    token->col = l->start.col;
+    token->line = line;
+    token->col = col;
     
     return token;
 }
 
-Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
+Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
     while(peek(l) != quote && peek(l) != '\0'){
         if(peek(l) == '\\'){
             advance(l);
@@ -107,7 +105,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
                 advance(l);
 
                 if(!is_hex(peek(l))){
-                    return set_token(l, TOK_ERR);
+                    return set_token(l, TOK_ERR, line, col);
                 }
 
                 while(is_hex(peek(l))){
@@ -121,7 +119,7 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
 
                 for(uint32_t i=0; i<req_digits; i++){
                     if(!is_hex(peek(l))){
-                        return set_token(l, TOK_ERR);
+                        return set_token(l, TOK_ERR, line, col);
                     }
                     advance(l);
                 }
@@ -137,7 +135,8 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
             // Common escapes
             else{
                 if(!is_in_escape_list(peek(l))){
-                    return set_token(l, TOK_ERR);
+                    advance(l);
+                    return set_token(l, TOK_ERR, line, col);
                 }
                 advance(l);
             }
@@ -151,18 +150,20 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type){
         advance(l);
     }
     // Mais entendível do que retornar o token com um if
-    return set_token(l, type);
+    return set_token(l, type, line, col);
 }
 
 Token* next_token(Lexer *l){
     skip_whitespace(l);
+    size_t tok_line = l->line;
+    size_t tok_col = l->col;
 
-    l->start.pointer = l->forward;
+    l->start = l->forward;
     unsigned char c = peek(l);
 
     // EOF
     if(c == '\0'){
-        return set_token(l, TOK_EOF);
+        return set_token(l, TOK_EOF, tok_line, tok_col);
     }
 
     advance(l);
@@ -173,7 +174,7 @@ Token* next_token(Lexer *l){
         if(c == 'L'){
             advance(l);
         }
-        return lex_literals(l, '"', TOK_LIT_STRING);
+        return lex_literals(l, '"', TOK_LIT_STRING, tok_line, tok_col);
     }
     
     if(c == '\'' || ((c == 'L') && peek(l) == '\'')){
@@ -181,10 +182,10 @@ Token* next_token(Lexer *l){
         if(c == 'L'){
             advance(l);
         }
-        if(peek_next(l) != '\'' || peek_next(l) != '\\'){
-            return set_token(l, TOK_ERR);
+        if(peek(l) == '\''){
+            return set_token(l, TOK_ERR, tok_line, tok_col);
         }
-        return lex_literals(l, '\'', TOK_LIT_CHAR);
+        return lex_literals(l, '\'', TOK_LIT_CHAR, tok_line, tok_col);
     }
 
     // Identifiers e Keywords
@@ -202,7 +203,7 @@ Token* next_token(Lexer *l){
 
                     for(uint8_t i=0; i<req_digits; i++){
                         if(!is_hex(peek(l))){
-                            return set_token(l, TOK_ERR);
+                            return set_token(l, TOK_ERR, tok_line, tok_col);
                         }
                         advance(l);
                     }
@@ -216,8 +217,8 @@ Token* next_token(Lexer *l){
             }
         }
 
-        uint32_t len = l->forward - l->start.pointer;
-        const char *str = (const char*)&l->src[l->start.pointer];
+        uint32_t len = l->forward - l->start;
+        const char *str = (const char*)&l->src[l->start];
         String *lex_str = intern_string(l->arena, &l->interner, str, len);
         
         Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
@@ -251,7 +252,7 @@ Token* next_token(Lexer *l){
                 }
 
                 if(!is_digit(peek(l))){
-                    return set_token(l, TOK_ERR);
+                    return set_token(l, TOK_ERR, tok_line, tok_col);
                 }
 
                 while(is_digit(peek(l))){
@@ -299,22 +300,26 @@ Token* next_token(Lexer *l){
                 }
 
                 if(!has_exp_digits){
-                    return set_token(l, TOK_ERR);
+                    return set_token(l, TOK_ERR, tok_line, tok_col);
                 }
             }
 
             if(is_float){
                 if(!has_exp){
-                    return set_token(l, TOK_ERR);
+                    return set_token(l, TOK_ERR, tok_line, tok_col);
                 }
 
-                if(!has_hex_digits && !has_fraction_digits && !has_exp){
-                    return set_token(l, TOK_ERR);
+                if(!has_hex_digits && !has_fraction_digits){
+                    return set_token(l, TOK_ERR, tok_line, tok_col);
                 }
 
-                if(has_hex_digits){
-                    hex_float_flag = 1;    
+                if(has_fraction_digits){
+                    hex_float_flag = 1;
                 }
+            }
+
+            if(!is_float && !has_hex_digits){
+                return set_token(l, TOK_ERR, tok_line, tok_col);
             }
         }
         else{
@@ -342,7 +347,7 @@ Token* next_token(Lexer *l){
                 }
 
                 if(!is_digit(peek(l))){
-                    return set_token(l, TOK_ERR);
+                    return set_token(l, TOK_ERR, tok_line, tok_col);
                 }
 
                 while(is_digit(peek(l))){
@@ -392,152 +397,152 @@ Token* next_token(Lexer *l){
             while(is_alnum(peek(l))){
                 advance(l);
             }
-            return set_token(l, TOK_ERR);
+            return set_token(l, TOK_ERR, tok_line, tok_col);
         }
 
         if(is_float){
-            return set_token(l, TOK_NUM_FLOAT);
+            return set_token(l, TOK_NUM_FLOAT, tok_line, tok_col);
         }
-        return set_token(l, TOK_NUM_INT);
+        return set_token(l, TOK_NUM_INT, tok_line, tok_col);
     }
     
     // Operators e Separators
     switch(c){
         case '#':
             if(match(l, '#')){
-                return set_token(l, TOK_HASH_HASH);
+                return set_token(l, TOK_HASH_HASH, tok_line, tok_col);
             } 
-            return set_token(l, TOK_HASH);
+            return set_token(l, TOK_HASH, tok_line, tok_col);
         case '(':
-            return set_token(l, TOK_LPAREN);
+            return set_token(l, TOK_LPAREN, tok_line, tok_col);
         case ')':
-            return set_token(l, TOK_RPAREN);
+            return set_token(l, TOK_RPAREN, tok_line, tok_col);
         case '{':
-            return set_token(l, TOK_LBRACE);
+            return set_token(l, TOK_LBRACE, tok_line, tok_col);
         case '}':
-            return set_token(l, TOK_RBRACE);
+            return set_token(l, TOK_RBRACE, tok_line, tok_col);
         case '[':
-            return set_token(l, TOK_LBRACKET);
+            return set_token(l, TOK_LBRACKET, tok_line, tok_col);
         case ']':
-            return set_token(l, TOK_RBRACKET);
+            return set_token(l, TOK_RBRACKET, tok_line, tok_col);
         case ';':
-            return set_token(l, TOK_SEMICOLON);
+            return set_token(l, TOK_SEMICOLON, tok_line, tok_col);
         case ',':
-            return set_token(l, TOK_COMMA);
+            return set_token(l, TOK_COMMA, tok_line, tok_col);
         case '?':
-            return set_token(l, TOK_QUESTION);
+            return set_token(l, TOK_QUESTION, tok_line, tok_col);
         case ':':
-            return set_token(l, TOK_COLON);
+            return set_token(l, TOK_COLON, tok_line, tok_col);
         case '~':
-            return set_token(l, TOK_BIT_NOT);
+            return set_token(l, TOK_BIT_NOT, tok_line, tok_col);
         case '.':
             if(match(l, '.')){
                 if(match(l, '.')){
-                    return set_token(l, TOK_ELLIPSIS);
+                    return set_token(l, TOK_ELLIPSIS, tok_line, tok_col);
                 }
-                return set_token(l, TOK_ERR);
+                return set_token(l, TOK_ERR, tok_line, tok_col);
             }
-            return set_token(l, TOK_DOT);
+            return set_token(l, TOK_DOT, tok_line, tok_col);
 
         case '+':
             if(match(l, '+')){
-                return set_token(l, TOK_INC);
+                return set_token(l, TOK_INC, tok_line, tok_col);
             }
             if(match(l, '=')){
-                return set_token(l, TOK_PLUS_ASSIGN);
+                return set_token(l, TOK_PLUS_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_PLUS);
+            return set_token(l, TOK_PLUS, tok_line, tok_col);
 
         case '-':
             if(match(l, '-')){
-                return set_token(l, TOK_DEC);
+                return set_token(l, TOK_DEC, tok_line, tok_col);
             }
             if(match(l, '=')){
-                return set_token(l, TOK_MINUS_ASSIGN);
+                return set_token(l, TOK_MINUS_ASSIGN, tok_line, tok_col);
             }
             if(match(l, '>')){
-                return set_token(l, TOK_ARROW);
+                return set_token(l, TOK_ARROW, tok_line, tok_col);
             }
-            return set_token(l, TOK_MINUS);
+            return set_token(l, TOK_MINUS, tok_line, tok_col);
 
         case '*':
             if(match(l, '=')){
-                return set_token(l, TOK_STAR_ASSIGN);
+                return set_token(l, TOK_STAR_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_STAR);
+            return set_token(l, TOK_STAR, tok_line, tok_col);
 
         case '/':
             if(match(l, '=')){
-                return set_token(l, TOK_SLASH_ASSIGN);
+                return set_token(l, TOK_SLASH_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_SLASH);
+            return set_token(l, TOK_SLASH, tok_line, tok_col);
         
         case '%':
             if(match(l, '=')){
-                return set_token(l, TOK_MOD_ASSIGN);
+                return set_token(l, TOK_MOD_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_MOD);
+            return set_token(l, TOK_MOD, tok_line, tok_col);
 
         case '!':
             if(match(l, '=')){
-                return set_token(l, TOK_NOT_EQUAL);
+                return set_token(l, TOK_NOT_EQUAL, tok_line, tok_col);
             }
-            return set_token(l, TOK_LOGICAL_NOT);
+            return set_token(l, TOK_LOGICAL_NOT, tok_line, tok_col);
 
         case '&':
             if(match(l, '&')){
-                return set_token(l, TOK_LOGICAL_AND);
+                return set_token(l, TOK_LOGICAL_AND, tok_line, tok_col);
             }
             if(match(l, '=')){
-                return set_token(l, TOK_AND_ASSIGN);
+                return set_token(l, TOK_AND_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_BIT_AND);
+            return set_token(l, TOK_BIT_AND, tok_line, tok_col);
 
         case '|':
             if(match(l, '|')){
-                return set_token(l, TOK_LOGICAL_OR);
+                return set_token(l, TOK_LOGICAL_OR, tok_line, tok_col);
             }
             if(match(l, '=')){
-                return set_token(l, TOK_OR_ASSIGN);
+                return set_token(l, TOK_OR_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_BIT_OR);
+            return set_token(l, TOK_BIT_OR, tok_line, tok_col);
 
         case '^':
             if(match(l, '=')){
-                return set_token(l, TOK_XOR_ASSIGN);
+                return set_token(l, TOK_XOR_ASSIGN, tok_line, tok_col);
             }
-            return set_token(l, TOK_BIT_XOR);
+            return set_token(l, TOK_BIT_XOR, tok_line, tok_col);
 
         case '=':
             if(match(l, '=')){
-                return set_token(l, TOK_EQUAL_EQUAL);
+                return set_token(l, TOK_EQUAL_EQUAL, tok_line, tok_col);
             }
-            return set_token(l, TOK_ASSIGN);
+            return set_token(l, TOK_ASSIGN, tok_line, tok_col);
 
         case '<':
             if(match(l, '<')){
                 if(match(l, '=')){
-                    return set_token(l, TOK_SHL_ASSIGN);
+                    return set_token(l, TOK_SHL_ASSIGN, tok_line, tok_col);
                 }
-                return set_token(l, TOK_SHIFT_LEFT);
+                return set_token(l, TOK_SHIFT_LEFT, tok_line, tok_col);
             }
             if(match(l, '=')){
-                return set_token(l, TOK_LESS_EQUAL);
+                return set_token(l, TOK_LESS_EQUAL, tok_line, tok_col);
             }
-            return set_token(l, TOK_LESS);
+            return set_token(l, TOK_LESS, tok_line, tok_col);
         
         case '>':
             if(match(l, '>')){
                 if(match(l, '=')){
-                    return set_token(l, TOK_SHR_ASSIGN);
+                    return set_token(l, TOK_SHR_ASSIGN, tok_line, tok_col);
                 }
-                return set_token(l, TOK_SHIFT_RIGHT);
+                return set_token(l, TOK_SHIFT_RIGHT, tok_line, tok_col);
             }
             if(match(l, '=')){
-                return set_token(l, TOK_GREATER_EQUAL);
+                return set_token(l, TOK_GREATER_EQUAL, tok_line, tok_col);
             }
-            return set_token(l, TOK_GREATER);
+            return set_token(l, TOK_GREATER, tok_line, tok_col);
     }
 
-    return set_token(l, TOK_ERR);
+    return set_token(l, TOK_ERR, tok_line, tok_col);
 }

@@ -5,16 +5,9 @@
 #include "strings.h"
 #include "type.h"
 
-// workaround absurdo pq fiquei com preguiça de mudar o set_token. Outra hora eu mudo a função
-typedef struct StartPointer{
-    size_t pointer;
-    size_t line;
-    size_t col;
-} StartPointer;
-
 typedef struct Lexer{
     const unsigned char *src;
-    StartPointer start;
+    size_t start;
     size_t forward;
     size_t line;
     size_t col;
@@ -29,9 +22,9 @@ uint32_t match(Lexer *l, unsigned char to_match);
 void advance(Lexer *l);
 void skip_whitespace(Lexer *l);
 
-Token* lex_literals(Lexer *l, unsigned char quote, TokenType type);
+Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col);
 
-Token* set_token(Lexer *l, TokenType type);
+Token* set_token(Lexer *l, TokenType type, size_t line, size_t col);
 Token* next_token(Lexer *l);
 
 #endif

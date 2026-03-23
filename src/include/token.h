@@ -44,7 +44,6 @@
         X(TOK_KW_RESTRICT) \
         X(TOK_KW_BOOL) \
         X(TOK_KW_COMPLEX) \
-        X(TOK_KW_IMAGINARY) \
         X(TOK_KW_PRAGMA) \
         X(TOK_NUM_INT) \
         X(TOK_NUM_FLOAT) \

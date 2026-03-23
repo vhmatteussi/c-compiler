@@ -47,20 +47,20 @@
 #endif
 
 /*
-Current result:
-
-Done with 9 errors:
+Done with 13 errors:
 ---------------------------------------
-at line: 18 and col: 9, invalid token: 0x29.3p3l
-at line: 19 and col: 10, invalid token: 0x29.3p+3l
-at line: 20 and col: 10, invalid token: 0x29.3p-3l
-at line: 21 and col: 7, invalid token: 0x.3p3l
-at line: 22 and col: 8, invalid token: 0x.3p+3l
-at line: 23 and col: 8, invalid token: 0x.3p-3l
-at line: 41 and col: 5, invalid token: 0x23p
-at line: 43 and col: 5, invalid token: 0x23.
-at line: 44 and col: 6, invalid token: 0x23.p
+at line: 0 and col: 0, invalid token: 0x29.3p3lf
+at line: 0 and col: 0, invalid token: 0x29.3p+3lf
+at line: 0 and col: 0, invalid token: 0x29.3p-3lf
+at line: 0 and col: 0, invalid token: 0x.3p3lf
+at line: 0 and col: 0, invalid token: 0x.3p+3lf
+at line: 0 and col: 0, invalid token: 0x.3p-3lf
+at line: 0 and col: 0, invalid token: 0x.p3
+at line: 0 and col: 0, invalid token: 0x.p+3
+at line: 0 and col: 0, invalid token: 0x.p-3
+at line: 0 and col: 0, invalid token: 0x23p
+at line: 0 and col: 0, invalid token: 0x
+at line: 0 and col: 0, invalid token: 0x23.
+at line: 0 and col: 0, invalid token: 0x23.p
 ---------------------------------------
-
-a lot to work on
 */

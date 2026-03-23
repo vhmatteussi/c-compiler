@@ -5,39 +5,22 @@
 #include <complex.h>
 
 unsigned long main(void* hello){
-    
-    void cool\u6C34name;
-    _Bool boolean;
-    _Complex complex_number;
-    int hex = 0x29AF93282343B;
-    float hex_f = 0x29.3p32f;
-    float hex_f = 0x29.3p32f;
-    float exp = 3e-3;
-    char *lit = L"this is a large literal\n";
-    char litteral = 'T';
-    float hello_world=293.293f;
-    printf("\rolá,\tmundo\n");
-    printf("中国将主宰世界，去他妈的美国");
-    ...
-    .
-    ..
-    ->
-    [{(129843)}];
-    ;
-    _Imaginary foobar = 5;
-    /*
-        eu não sei se isso é um arquivo de teste ou uma obra de arte
-    */
+    L"天上太阳红呀红彤彤诶"
+    L"心中的太阳是毛泽东诶"
+    "他领导我们得解放诶"
+    "人民翻身当家做主人"
+    "咿呀咿吱呦喂 呀而呀吱呦啊"
+    "人民翻身当家做主人"
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////// asjkdhfljkhasdfjkhaçklsdfhjçlkaksdjlf
+    'a'
+    'á'
+    L'á'
+    L'民'
+    '\n'
+    L'Ω'
 
-    //return;
-
-    "return;"
-    "\"return;"
-
-    return 1293.232ULLLLLLL;
-    float not_a_hex_f = 0x29.p
+    'hello world'
+    '\d'
 }
 
 #endif

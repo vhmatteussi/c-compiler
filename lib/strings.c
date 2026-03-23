@@ -162,7 +162,6 @@ void init_interner(Arena *a, StringInterner *interner){
     intern_keyword(a, interner, "restrict", TOK_KW_RESTRICT);
     intern_keyword(a, interner, "_Bool", TOK_KW_BOOL);
     intern_keyword(a, interner, "_Complex", TOK_KW_COMPLEX);
-    intern_keyword(a, interner, "_Imaginary", TOK_KW_IMAGINARY);
     intern_keyword(a, interner, "_Pragma", TOK_KW_PRAGMA);
 }
 
