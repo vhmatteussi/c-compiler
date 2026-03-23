@@ -20,7 +20,7 @@ unsigned char peek(Lexer *l);
 uint32_t match(Lexer *l, unsigned char to_match);
 
 void advance(Lexer *l);
-void skip_whitespace(Lexer *l);
+uint32_t skip_whitespace(Lexer *l);
 
 Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col);
 

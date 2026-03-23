@@ -48,7 +48,7 @@ void advance(Lexer *l){
     }
 }
 
-void skip_whitespace(Lexer *l){
+uint32_t skip_whitespace(Lexer *l){
     while(1){
         unsigned char c = peek(l);
         if(is_whitespace(c)){
@@ -66,17 +66,18 @@ void skip_whitespace(Lexer *l){
                 while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
                     advance(l);
                 }
-                if(peek(l) != '\0'){
-                    advance(l);
-                    advance(l);
+                if(peek(l) == '\0'){
+                    return 1;
                 }
+                advance(l);
+                advance(l);
             }
             else{
-                return;
+                return 0;
             }
         }
         else{
-            return;
+            return 0;
         }
     }
 }
@@ -154,12 +155,16 @@ Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, 
 }
 
 Token* next_token(Lexer *l){
-    skip_whitespace(l);
-    size_t tok_line = l->line;
-    size_t tok_col = l->col;
+    if(skip_whitespace(l)){
+        l->start = l->forward;
+        return set_token(l, TOK_ERR, l->line, l->col);
+    }
 
     l->start = l->forward;
     unsigned char c = peek(l);
+
+    size_t tok_line = l->line;
+    size_t tok_col = l->col;
 
     // EOF
     if(c == '\0'){
@@ -319,6 +324,18 @@ Token* next_token(Lexer *l){
             }
 
             if(!is_float && !has_hex_digits){
+                return set_token(l, TOK_ERR, tok_line, tok_col);
+            }
+        }
+        else if(c == '0' && is_octal(peek(l))){
+            while(is_octal(peek(l))){
+                advance(l);
+            }
+
+            if(is_digit(peek(l))){
+                while(is_alnum(peek(l))){
+                    advance(l);
+                }
                 return set_token(l, TOK_ERR, tok_line, tok_col);
             }
         }
