@@ -96,7 +96,7 @@ uint32_t skip_whitespace(Lexer *l){
     }
 }
 
-Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
+static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
     while(peek(l) != quote && peek(l) != '\0'){
         if(peek(l) == '\\'){
             advance(l);
