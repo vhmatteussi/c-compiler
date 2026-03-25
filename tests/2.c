@@ -20,6 +20,7 @@ unsigned long main(void* hello){
     L'Ω'
 
     'hello world'
+    '民'
     '\d'
 }
 

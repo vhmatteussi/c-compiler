@@ -48,6 +48,20 @@ void advance(Lexer *l){
     }
 }
 
+Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
+    uint32_t len = l->forward - l->start;
+    const char *str = (const char*)&l->src[l->start];
+    String *lex_str = intern_string(l->arena, &l->interner, str, len);
+
+    Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
+    token->lex = lex_str;
+    token->type = type;
+    token->line = line;
+    token->col = col;
+    
+    return token;
+}
+
 uint32_t skip_whitespace(Lexer *l){
     while(1){
         unsigned char c = peek(l);
@@ -80,20 +94,6 @@ uint32_t skip_whitespace(Lexer *l){
             return 0;
         }
     }
-}
-
-Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
-    uint32_t len = l->forward - l->start;
-    const char *str = (const char*)&l->src[l->start];
-    String *lex_str = intern_string(l->arena, &l->interner, str, len);
-
-    Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
-    token->lex = lex_str;
-    token->type = type;
-    token->line = line;
-    token->col = col;
-    
-    return token;
 }
 
 Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
@@ -239,6 +239,7 @@ Token* next_token(Lexer *l){
     if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
         uint32_t is_float = 0;
         uint32_t hex_float_flag = 0;
+        uint32_t exp_flag = 0;
 
         // Float sem parte inteira, e.g. .5f, .1e-2
         if(c == '.'){
@@ -327,6 +328,7 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_ERR, tok_line, tok_col);
             }
         }
+        // Octals
         else if(c == '0' && is_octal(peek(l))){
             while(is_octal(peek(l))){
                 advance(l);
@@ -339,6 +341,7 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_ERR, tok_line, tok_col);
             }
         }
+        // Decimals
         else{
             while(is_digit(peek(l))){
                 advance(l);
@@ -357,6 +360,7 @@ Token* next_token(Lexer *l){
             // Exponential "integer" (float), e.g. 2e8, 10e-5, 3e+2
             if(peek(l) == 'e' || peek(l) == 'E'){
                 is_float = 1;
+                exp_flag = 1;
                 advance(l);
 
                 if(peek(l) == '-' || peek(l) == '+'){
@@ -379,7 +383,7 @@ Token* next_token(Lexer *l){
             advance(l);
         }
         else if(peek(l) == 'l' || peek(l) == 'L'){
-            if(is_float && hex_float_flag){
+            if(is_float && (hex_float_flag || exp_flag)){
                 advance(l);
             }
             else if(peek_next(l) == 'f' || peek_next(l) == 'F'){
