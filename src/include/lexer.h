@@ -12,7 +12,7 @@ typedef struct Lexer{
     size_t line;
     size_t col;
     Arena *arena;
-    StringInterner interner;
+    StringIntern intern;
 } Lexer;
 
 Lexer *init_lexer(Arena *a, const unsigned char *src);

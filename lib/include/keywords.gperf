@@ -1,0 +1,54 @@
+%{
+#include <string.h>
+#include "token.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+
+typedef struct KeywordMap{
+    const char *name;
+    TokenType type;
+} KeywordMap;
+%}
+
+struct KeywordMap
+
+%%
+char, TOK_KW_CHAR
+int, TOK_KW_INT
+short, TOK_KW_SHORT
+long, TOK_KW_LONG
+float, TOK_KW_FLOAT
+double, TOK_KW_DOUBLE
+void, TOK_KW_VOID
+signed, TOK_KW_SIGNED
+unsigned, TOK_KW_UNSIGNED
+static, TOK_KW_STATIC
+extern, TOK_KW_EXTERN
+auto, TOK_KW_AUTO
+volatile, TOK_KW_VOLATILE
+register, TOK_KW_REGISTER
+goto, TOK_KW_GOTO
+if, TOK_KW_IF
+else, TOK_KW_ELSE
+switch, TOK_KW_SWITCH
+case, TOK_KW_CASE
+default, TOK_KW_DEFAULT
+break, TOK_KW_BREAK
+continue, TOK_KW_CONTINUE
+do, TOK_KW_DO
+while, TOK_KW_WHILE
+for, TOK_KW_FOR
+return, TOK_KW_RETURN
+enum, TOK_KW_ENUM
+struct, TOK_KW_STRUCT
+union, TOK_KW_UNION
+typedef, TOK_KW_TYPEDEF
+sizeof, TOK_KW_SIZEOF
+inline, TOK_KW_INLINE
+restrict, TOK_KW_RESTRICT
+_Bool, TOK_KW_BOOL
+_Complex, TOK_KW_COMPLEX
+_Pragma, TOK_KW_PRAGMA
+%%

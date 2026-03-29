@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "keywords.c"
 
 Lexer *init_lexer(Arena *a, const unsigned char *src){
     Lexer *l = (Lexer*)arena_malloc(a, sizeof(Lexer));
@@ -8,7 +9,7 @@ Lexer *init_lexer(Arena *a, const unsigned char *src){
     l->line = 1;
     l->col = 1;
     l->arena = a;
-    init_interner(a, &l->interner);
+    init_intern(a, &l->intern);
     return l;
 }
 
@@ -51,7 +52,7 @@ void advance(Lexer *l){
 Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
     uint32_t len = l->forward - l->start;
     const char *str = (const char*)&l->src[l->start];
-    String *lex_str = intern_string(l->arena, &l->interner, str, len);
+    String *lex_str = intern_string(l->arena, &l->intern, str, len);
 
     Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
     token->lex = lex_str;
@@ -149,9 +150,10 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
 
     if(peek(l) == quote){
         advance(l);
+        return set_token(l, type, line, col);
     }
-    // Mais entendível do que retornar o token com um if
-    return set_token(l, type, line, col);
+    
+    return set_token(l, TOK_ERR, line, col);
 }
 
 Token* next_token(Lexer *l){
@@ -221,16 +223,25 @@ Token* next_token(Lexer *l){
                 break;
             }
         }
-
         uint32_t len = l->forward - l->start;
         const char *str = (const char*)&l->src[l->start];
-        String *lex_str = intern_string(l->arena, &l->interner, str, len);
-        
+
         Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
-        token->lex = lex_str;
-        token->type = lex_str->kw_type; 
         token->line = tok_line;
         token->col = tok_col;
+
+        String *lex_str = intern_string(l->arena, &l->intern, str, len);
+
+        // just gperf doing its things
+        const KeywordMap *kw = lookup_keyword(lex_str->data, len);
+
+        token->lex = lex_str;
+        if(kw != NULL){
+            token->type = kw->type;
+        }
+        else{
+            token->type = TOK_ID;
+        }
         
         return token;
     }

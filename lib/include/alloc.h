@@ -4,17 +4,17 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Truque pra saber o alinhamento máximo, já que não tem _Alignas e _Alignof no C99
-// Pega o alinhamento dos tipos fundamentais, melhor do que assumir um alinhamento para uma arquitetura
-typedef union MaxAlign{
-    long long i;        // 8
-    long double d;      // 8 ou 16
-    void *p;            // 8
-    void (*fn)(void);   // 8
-} MaxAlign;
+// C99 stuff
+typedef union _MaxAlign{
+    long long i;
+    long double d;
+    void *p;
+    void (*fn)(void);
+} _MaxAlign;
 
-// max(8, 8 ou 16, 8, 8) -> 8 : 16
-static const size_t ARENA_ALIGNMENT = sizeof(MaxAlign);
+#define _ALIGN_OF(type) ((size_t)&(((struct{char c; type member;}*)0)->member))     // yeah
+#define _ARENA_ALIGNMENT _ALIGN_OF(_MaxAlign)                                       // returns 8 or 16, hopefully
+#define _ALIGN_UP(size, align) (((size) + (align) - 1) & ~((align) - 1))            // align arena's pointer
 
 typedef struct Arena{
     uint8_t *buffer;
@@ -22,9 +22,9 @@ typedef struct Arena{
     size_t offset;
 } Arena;
 
-void init_arena(Arena *a, void *backing_buffer, size_t capacity);
-void *arena_malloc(Arena *a, size_t size);
-void *arena_calloc(Arena *a, size_t count, size_t size);
-void reset_arena(Arena *a);
+void init_arena(Arena *a, void *backing_buffer, size_t capacity);       // inits arena, who would've guessed
+void *arena_malloc(Arena *a, size_t size);                      // it does what it says
+void *arena_calloc(Arena *a, size_t count, size_t size);        // yup
+void reset_arena(Arena *a);                                     // a->offset = 0;
 
 #endif
