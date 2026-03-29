@@ -98,6 +98,7 @@ uint32_t skip_whitespace(Lexer *l){
 }
 
 static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
+    uint32_t error = 0;
     while(peek(l) != quote && peek(l) != '\0'){
         if(peek(l) == '\\'){
             advance(l);
@@ -107,7 +108,7 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
                 advance(l);
 
                 if(!is_hex(peek(l))){
-                    return set_token(l, TOK_ERR, line, col);
+                    error = 1;
                 }
 
                 while(is_hex(peek(l))){
@@ -121,7 +122,7 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
 
                 for(uint32_t i=0; i<req_digits; i++){
                     if(!is_hex(peek(l))){
-                        return set_token(l, TOK_ERR, line, col);
+                        error = 1;
                     }
                     advance(l);
                 }
@@ -137,8 +138,7 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
             // Common escapes
             else{
                 if(!is_in_escape_list(peek(l))){
-                    advance(l);
-                    return set_token(l, TOK_ERR, line, col);
+                    error = 1;
                 }
                 advance(l);
             }
@@ -150,6 +150,9 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
 
     if(peek(l) == quote){
         advance(l);
+        if(error){
+            return set_token(l, TOK_ERR, line, col);
+        }
         return set_token(l, type, line, col);
     }
     

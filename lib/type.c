@@ -41,7 +41,7 @@ static const uint64_t escape_mask[4] = {
 };
 
 bool is_in_escape_list(unsigned char c){
-    // will not write down how it works, look at my fun little drawing instead:
+    // i won't write down how it works, look at my fun little drawing instead:
     // https://excalidraw.com/#json=Os8zNbPbNxhyE6jIt16mM,ZMHJHF0ysKZ6McKMvRuiyA
     return ((escape_mask[c >> 6] >> (c & 63)) & 1);
 }

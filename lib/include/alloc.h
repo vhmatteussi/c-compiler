@@ -22,9 +22,9 @@ typedef struct Arena{
     size_t offset;
 } Arena;
 
-void init_arena(Arena *a, void *backing_buffer, size_t capacity);       // inits arena, who would've guessed
-void *arena_malloc(Arena *a, size_t size);                      // it does what it says
-void *arena_calloc(Arena *a, size_t count, size_t size);        // yup
-void reset_arena(Arena *a);                                     // a->offset = 0;
+void init_arena(Arena *a, void *backing_buffer, size_t capacity);   // inits arena, who would've guessed
+void *arena_malloc(Arena *a, size_t size);                          // it does what it says
+void *arena_calloc(Arena *a, size_t count, size_t size);            // yup
+void reset_arena(Arena *a);                                         // a->offset = 0;
 
 #endif

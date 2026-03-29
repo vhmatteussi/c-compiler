@@ -13,15 +13,15 @@ unsigned long main(void* hello){
     "人民翻身当家做主人"
 
     'a'
-    'á'
+    'á' // maybe parser error
     L'á'
     L'民'
     '\n'
     L'Ω'
 
     'hello world'
-    '民'
-    '\d'
+    '民' // maybe parser error
+    '\m'
 }
 
 #endif
