@@ -64,12 +64,14 @@ static Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
 }
 
 static bool skip_comment(Lexer *l){
-    if(peek_next(l) == '/'){
+    advance(l);
+    if(peek(l) == '/'){
+        advance(l);
         while(peek(l) != '\n' && peek(l) != '\0'){
             advance(l);
         }
     }
-    else if(peek_next(l) == '*'){
+    else if(peek(l) == '*'){
         advance(l);
         advance(l);
         while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
