@@ -99,6 +99,7 @@ uint32_t skip_whitespace(Lexer *l){
 
 static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
     uint32_t error = 0;
+    uint32_t count = 0;
     while(peek(l) != quote && peek(l) != '\0'){
         if(peek(l) == '\\'){
             advance(l);
@@ -145,7 +146,14 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
             // No escape
             continue;
         }
+        if(is_alnum(peek(l))){
+            count++;
+        }
         advance(l);
+    }
+
+    if(quote == '\'' && count > 1){
+        error = 1;
     }
 
     if(peek(l) == quote){
@@ -478,7 +486,6 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_ERR, tok_line, tok_col);
             }
             return set_token(l, TOK_DOT, tok_line, tok_col);
-
         case '+':
             if(match(l, '+')){
                 return set_token(l, TOK_INC, tok_line, tok_col);
@@ -487,7 +494,6 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_PLUS_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_PLUS, tok_line, tok_col);
-
         case '-':
             if(match(l, '-')){
                 return set_token(l, TOK_DEC, tok_line, tok_col);
@@ -499,31 +505,26 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_ARROW, tok_line, tok_col);
             }
             return set_token(l, TOK_MINUS, tok_line, tok_col);
-
         case '*':
             if(match(l, '=')){
                 return set_token(l, TOK_STAR_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_STAR, tok_line, tok_col);
-
         case '/':
             if(match(l, '=')){
                 return set_token(l, TOK_SLASH_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_SLASH, tok_line, tok_col);
-        
         case '%':
             if(match(l, '=')){
                 return set_token(l, TOK_MOD_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_MOD, tok_line, tok_col);
-
         case '!':
             if(match(l, '=')){
                 return set_token(l, TOK_NOT_EQUAL, tok_line, tok_col);
             }
             return set_token(l, TOK_LOGICAL_NOT, tok_line, tok_col);
-
         case '&':
             if(match(l, '&')){
                 return set_token(l, TOK_LOGICAL_AND, tok_line, tok_col);
@@ -532,7 +533,6 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_AND_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_BIT_AND, tok_line, tok_col);
-
         case '|':
             if(match(l, '|')){
                 return set_token(l, TOK_LOGICAL_OR, tok_line, tok_col);
@@ -541,19 +541,16 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_OR_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_BIT_OR, tok_line, tok_col);
-
         case '^':
             if(match(l, '=')){
                 return set_token(l, TOK_XOR_ASSIGN, tok_line, tok_col);
             }
             return set_token(l, TOK_BIT_XOR, tok_line, tok_col);
-
         case '=':
             if(match(l, '=')){
                 return set_token(l, TOK_EQUAL_EQUAL, tok_line, tok_col);
             }
             return set_token(l, TOK_ASSIGN, tok_line, tok_col);
-
         case '<':
             if(match(l, '<')){
                 if(match(l, '=')){
@@ -565,7 +562,6 @@ Token* next_token(Lexer *l){
                 return set_token(l, TOK_LESS_EQUAL, tok_line, tok_col);
             }
             return set_token(l, TOK_LESS, tok_line, tok_col);
-        
         case '>':
             if(match(l, '>')){
                 if(match(l, '=')){
@@ -578,6 +574,5 @@ Token* next_token(Lexer *l){
             }
             return set_token(l, TOK_GREATER, tok_line, tok_col);
     }
-
     return set_token(l, TOK_ERR, tok_line, tok_col);
 }

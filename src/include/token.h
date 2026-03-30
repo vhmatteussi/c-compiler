@@ -96,7 +96,6 @@
         X(TOK_XOR_ASSIGN) \
         X(TOK_OR_ASSIGN)
 
-// C be like:
 typedef struct String String;
 
 typedef enum TokenType{
