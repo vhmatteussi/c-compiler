@@ -63,29 +63,6 @@ static Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
     return token;
 }
 
-static bool skip_comment(Lexer *l){
-    advance(l);
-    if(peek(l) == '/'){
-        advance(l);
-        while(peek(l) != '\n' && peek(l) != '\0'){
-            advance(l);
-        }
-    }
-    else if(peek(l) == '*'){
-        advance(l);
-        advance(l);
-        while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
-            advance(l);
-        }
-        if(peek(l) == '\0'){
-            return true;
-        }
-        advance(l);
-        advance(l);
-    }
-    return false;
-}
-
 static bool skip_whitespace(Lexer *l){
     while(1){
         unsigned char c = peek(l);
@@ -93,8 +70,25 @@ static bool skip_whitespace(Lexer *l){
             advance(l);
         }
         else if(c == '/'){
-            if(skip_comment(l)){
-                return true;
+            if(peek_next(l) == '/'){
+                while(peek(l) != '\n' && peek(l) != '\0'){
+                    advance(l);
+                }
+            }
+            else if(peek_next(l) == '*'){
+                advance(l);
+                advance(l);
+                while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
+                    advance(l);
+                }
+                if(peek(l) == '\0'){
+                    return true;
+                }
+                advance(l);
+                advance(l);
+            }
+            else{
+                return false;
             }
         }
         else{
