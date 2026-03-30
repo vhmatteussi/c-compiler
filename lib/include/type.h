@@ -20,6 +20,4 @@ bool is_octal(unsigned char c);             // '0' -> '7'
 bool is_in_escape_list(unsigned char c);    // ', ", ?, \, a, b, f, n, r, t 
 bool is_whitespace(unsigned char c);        // SOH (0x01) -> SPACE (0x20)
 
-unsigned char to_upper(unsigned char c);
-
 #endif
