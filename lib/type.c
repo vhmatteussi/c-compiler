@@ -50,3 +50,10 @@ bool is_whitespace(unsigned char c){
     // basically, it undeflows 0x00 to 0xff, so \0 isn't considered a/an (english is hard) whitespace
     return ((unsigned char)(c - 1) < ' ');
 }
+
+unsigned char to_upper(unsigned char c){
+    if(is_lower(c)){
+        return ((unsigned char)(c + 'A'));
+    }
+    return ((unsigned char)c);
+}

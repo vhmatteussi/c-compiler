@@ -48,6 +48,7 @@
 #endif
 
 /*
+Expected result:
 
 Done with 14 errors:
 ---------------------------------------

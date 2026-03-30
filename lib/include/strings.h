@@ -33,9 +33,6 @@ typedef struct StringIntern{
     String **entries;
 } StringIntern;
 
-// i have some really bad news to myself if i ever need to use this elsewhere
-hash_t fnv1a(const void *data, size_t lenght); // Fowler-Noll-Vo hash function
-
 uint32_t rawstr_size(const char *s);
 
 String *init_string(Arena *a, const char *content);

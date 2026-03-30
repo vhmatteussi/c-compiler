@@ -16,15 +16,6 @@ typedef struct Lexer{
 } Lexer;
 
 Lexer *init_lexer(Arena *a, const unsigned char *src);
-unsigned char peek(Lexer *l);
-bool match(Lexer *l, unsigned char to_match);
-
-void advance(Lexer *l);
-bool skip_whitespace(Lexer *l);
-
-//Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col);
-
-Token* set_token(Lexer *l, TokenType type, size_t line, size_t col);
-Token* next_token(Lexer *l);
+Token *next_token(Lexer *l);
 
 #endif

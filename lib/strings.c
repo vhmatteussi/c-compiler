@@ -1,6 +1,6 @@
 #include "strings.h"
 
-hash_t fnv1a(const void *data, size_t lenght){
+static hash_t fnv1a(const void *data, size_t lenght){
     const uint8_t* bytes = (const uint8_t*)data;
     hash_t hash = _FNV_OFFSET;
 
@@ -75,7 +75,7 @@ uint32_t string_cmp(const String *s1, const String *s2){
     return 1;
 }
 
-static inline uint32_t string_eq_raw(String *s1, const char *raw_str, uint32_t lenght){
+static uint32_t string_eq_raw(String *s1, const char *raw_str, uint32_t lenght){
     if(s1->length != lenght){
         return 0;
     }

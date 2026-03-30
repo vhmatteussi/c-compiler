@@ -13,26 +13,18 @@ Lexer *init_lexer(Arena *a, const unsigned char *src){
     return l;
 }
 
-unsigned char peek(Lexer *l){
+static unsigned char peek(Lexer *l){
     return l->src[l->forward];
 }
 
-unsigned char peek_next(Lexer *l){
+static unsigned char peek_next(Lexer *l){
     if(peek(l) == '\0'){
         return '\0';
     }
     return l->src[l->forward + 1];
 }
 
-bool match(Lexer *l, unsigned char to_match){
-    if(peek(l) != to_match){
-        return false;
-    }
-    advance(l);
-    return true;
-}
-
-void advance(Lexer *l){
+static void advance(Lexer *l){
     if(peek(l) == '\0'){
         return;
     }
@@ -49,7 +41,15 @@ void advance(Lexer *l){
     }
 }
 
-Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
+static bool match(Lexer *l, unsigned char to_match){
+    if(peek(l) != to_match){
+        return false;
+    }
+    advance(l);
+    return true;
+}
+
+static Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
     uint32_t len = l->forward - l->start;
     const char *str = (const char*)&l->src[l->start];
     String *lex_str = intern_string(l->arena, &l->intern, str, len);
@@ -63,32 +63,36 @@ Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
     return token;
 }
 
-bool skip_whitespace(Lexer *l){
+static bool skip_comment(Lexer *l){
+    if(peek_next(l) == '/'){
+        while(peek(l) != '\n' && peek(l) != '\0'){
+            advance(l);
+        }
+    }
+    else if(peek_next(l) == '*'){
+        advance(l);
+        advance(l);
+        while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
+            advance(l);
+        }
+        if(peek(l) == '\0'){
+            return true;
+        }
+        advance(l);
+        advance(l);
+    }
+    return false;
+}
+
+static bool skip_whitespace(Lexer *l){
     while(1){
         unsigned char c = peek(l);
         if(is_whitespace(c)){
             advance(l);
         }
         else if(c == '/'){
-            if(peek_next(l) == '/'){
-                while(peek(l) != '\n' && peek(l) != '\0'){
-                    advance(l);
-                }
-            }
-            else if(peek_next(l) == '*'){
-                advance(l);
-                advance(l);
-                while(!(peek(l) == '*' && peek_next(l) == '/') && peek(l) != '\0'){
-                    advance(l);
-                }
-                if(peek(l) == '\0'){
-                    return true;
-                }
-                advance(l);
-                advance(l);
-            }
-            else{
-                return false;
+            if(skip_comment(l)){
+                return true;
             }
         }
         else{
@@ -97,53 +101,58 @@ bool skip_whitespace(Lexer *l){
     }
 }
 
-static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
-    uint32_t error = 0;
+static bool lex_hex_escape(Lexer *l){
+    advance(l);
+    if(!is_hex(peek(l))){
+        return false;
+    }
+    while(is_hex(peek(l))){
+        advance(l);
+    }
+    return true;
+}
+
+static bool lex_unicode_escape(Lexer *l){
+    uint8_t req_digits = (peek(l) == 'u') ? 4 : 8;
+    advance(l);
+    for(uint8_t i=0; i<req_digits; i++){
+        if(!is_hex(peek(l))){
+            return false;
+        }
+        advance(l);
+    }
+    return true;
+}
+
+static bool lex_octal_escape(Lexer *l){
+    advance(l);
+    uint8_t count = 0;
+    while(is_octal(peek(l)) && count < 3){
+        advance(l);
+        count++;
+    }
+    return true;
+}
+
+static Token* lex_literals(Lexer *l, unsigned char quote, TokenType type, size_t line, size_t col){
+    uint8_t error = 0;
     uint32_t count = 0;
     while(peek(l) != quote && peek(l) != '\0'){
         if(peek(l) == '\\'){
             advance(l);
-
-            // Hex escapes
             if(peek(l) == 'x'){
-                advance(l);
-
-                if(!is_hex(peek(l))){
-                    error = 1;
-                }
-
-                while(is_hex(peek(l))){
-                    advance(l);
-                }
+                error = !lex_hex_escape(l);
             }
-            // Unicode escapes
-            else if(peek(l) == 'u' || peek(l) == 'U'){
-                uint32_t req_digits = (peek(l) == 'u') ? 4 : 8;
-                advance(l);
-
-                for(uint32_t i=0; i<req_digits; i++){
-                    if(!is_hex(peek(l))){
-                        error = 1;
-                    }
-                    advance(l);
-                }
+            else if(to_upper(peek(l)) == 'U'){
+                error = !lex_unicode_escape(l);
             }
-            // Octal escapes
             else if(is_octal(peek(l))){
-                uint32_t count = 0;
-                while(is_octal(peek(l)) && count < 3){
-                    advance(l);
-                    count++;
-                }
+                lex_octal_escape(l);
             }
-            // Common escapes
             else{
-                if(!is_in_escape_list(peek(l))){
-                    error = 1;
-                }
+                error = !is_in_escape_list(peek(l));
                 advance(l);
             }
-            // No escape
             continue;
         }
         if(is_alnum(peek(l))){
@@ -151,23 +160,156 @@ static inline Token* lex_literals(Lexer *l, unsigned char quote, TokenType type,
         }
         advance(l);
     }
-
-    if(quote == '\'' && count > 1){
-        error = 1;
-    }
-
+    error |= (quote == '\'' && count > 1);
     if(peek(l) == quote){
         advance(l);
-        if(error){
-            return set_token(l, TOK_ERR, line, col);
-        }
-        return set_token(l, type, line, col);
+        return set_token(l, (error ? TOK_ERR : type), line, col);
     }
-    
     return set_token(l, TOK_ERR, line, col);
 }
 
+static Token* lex_identifiers(Lexer *l, size_t tok_line, size_t tok_col){
+    while(1){
+        if(is_alnum(peek(l))){
+            advance(l);
+        }
+        else if(peek(l) == '\\'){
+            advance(l);
+            if(to_upper(peek_next(l)) == 'U'){
+                if(!lex_unicode_escape(l)){
+                    return set_token(l, TOK_ERR, tok_line, tok_col);
+                }
+            }
+            else{
+                break;
+            }
+        }
+        else{
+            break;
+        }
+    }
+    uint32_t len = l->forward - l->start;
+    const char *str = (const char*)&l->src[l->start];
+
+    Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
+    token->line = tok_line;
+    token->col = tok_col;
+
+    String *lex_str = intern_string(l->arena, &l->intern, str, len);
+    const KeywordMap *kw = lookup_keyword(lex_str->data, len);
+    token->lex = lex_str;
+
+    if(kw != NULL){
+        token->type = kw->type;
+    }
+    else{
+        token->type = TOK_ID;
+    }
+    return token;
+}
+
+static bool lex_octal_numeral(Lexer *l){
+    while(is_octal(peek(l))){
+        advance(l);
+    }
+    if(is_digit(peek(l))){
+        while(is_alnum(peek(l))){
+            advance(l);
+        }
+        return false;
+    }
+    return true;
+}
+
+static bool lex_exp_numeral(Lexer *l){
+    advance(l);
+    if(peek(l) == '-' || peek(l) == '+'){
+        advance(l);
+    }
+    if(!is_digit(peek(l))){
+        return false;
+    }
+    while(is_digit(peek(l))){
+        advance(l);
+    }
+    return true;
+}
+
+static bool lex_hex_numeral(Lexer *l, uint8_t *is_float, uint8_t *is_hex_float){
+    uint8_t has_hex_digits = 0;
+    uint8_t has_fraction_digits = 0;
+    uint8_t has_exp_digits = 0;
+    uint8_t has_exp = 0;
+
+    while(is_hex(peek(l))){
+        advance(l);
+        has_hex_digits = 1;
+    }
+
+    if(peek(l) == '.'){
+        *is_float = 1;
+        advance(l);
+        while(is_hex(peek(l))){
+            advance(l);
+            has_fraction_digits = 1;
+        }
+    }
+
+    if(peek(l) == 'p' || peek(l) == 'P'){
+        *is_float = 1;
+        has_exp = 1;
+
+        advance(l);
+
+        if(peek(l) == '+' || peek(l) == '-'){
+            advance(l);
+        }
+        while(is_digit(peek(l))){
+            advance(l);
+            has_exp_digits = 1;
+        }
+        if(!has_exp_digits){
+            return false;
+        }
+    }
+    if(*is_float){
+        if(!has_exp){
+            return false;
+        }
+        if(!has_hex_digits && !has_fraction_digits){
+            return false;
+        }
+        if(has_fraction_digits){
+            *is_hex_float = 1;
+        }
+    }
+    if(!*is_float && !has_hex_digits){
+        return false;
+    }
+    return true;
+}
+
+static bool lex_decimal_numeral(Lexer *l, uint8_t *is_float, uint8_t *is_exp){
+    while(is_digit(peek(l))){
+        advance(l);
+    }
+    if(peek(l) == '.'){
+        *is_float = 1;
+        advance(l);
+        while(is_digit(peek(l))){
+            advance(l);
+        }
+    }
+    if(to_upper(peek(l)) == 'E'){
+        *is_float = 1;
+        *is_exp = 1;
+        return lex_exp_numeral(l);
+    }
+    return true;
+}
+
 Token* next_token(Lexer *l){
+    // whitespace
     if(skip_whitespace(l)){
         l->start = l->forward;
         return set_token(l, TOK_ERR, l->line, l->col);
@@ -179,24 +321,23 @@ Token* next_token(Lexer *l){
     size_t tok_line = l->line;
     size_t tok_col = l->col;
 
-    // EOF
+    // eof
     if(c == '\0'){
         return set_token(l, TOK_EOF, tok_line, tok_col);
     }
-
+    
     advance(l);
 
-    // Literals
+    // string lit
     if(c == '"' || ((c == 'L') && peek(l) == '"')){
-        // String literal
         if(c == 'L'){
             advance(l);
         }
         return lex_literals(l, '"', TOK_LIT_STRING, tok_line, tok_col);
     }
-    
+
+    // char lit
     if(c == '\'' || ((c == 'L') && peek(l) == '\'')){
-        // Char literal
         if(c == 'L'){
             advance(l);
         }
@@ -207,215 +348,56 @@ Token* next_token(Lexer *l){
         return lex_literals(l, '\'', TOK_LIT_CHAR, tok_line, tok_col);
     }
 
-    // Identifiers e Keywords
+    // ids and kw
     if(is_alpha(c)){
-        while(1){
-            if(is_alnum(peek(l))){
-                advance(l);
-            }
-            // Unicode escape sequences
-            else if(peek(l) == '\\'){
-                if(peek_next(l) == 'u' || peek_next(l) == 'U'){
-                    uint8_t req_digits = (peek_next(l) == 'u') ? 4 : 8;
-                    advance(l);
-                    advance(l);
-
-                    for(uint8_t i=0; i<req_digits; i++){
-                        if(!is_hex(peek(l))){
-                            return set_token(l, TOK_ERR, tok_line, tok_col);
-                        }
-                        advance(l);
-                    }
-                }
-                else{
-                    break; // Deixa o erro para o próximo token
-                }
-            }
-            else{
-                break;
-            }
-        }
-        uint32_t len = l->forward - l->start;
-        const char *str = (const char*)&l->src[l->start];
-
-        Token *token = (Token*)arena_malloc(l->arena, sizeof(Token));
-        token->line = tok_line;
-        token->col = tok_col;
-
-        String *lex_str = intern_string(l->arena, &l->intern, str, len);
-
-        // just gperf doing its things
-        const KeywordMap *kw = lookup_keyword(lex_str->data, len);
-
-        token->lex = lex_str;
-        if(kw != NULL){
-            token->type = kw->type;
-        }
-        else{
-            token->type = TOK_ID;
-        }
-        
-        return token;
+        return lex_identifiers(l, tok_line, tok_col);
     }
 
-    // Numerals
+    // numerals
     if(is_digit(c) || (c == '.' && is_digit(peek(l)))){
-        uint32_t is_float = 0;
-        uint32_t hex_float_flag = 0;
-        uint32_t exp_flag = 0;
+        uint8_t is_float = 0;
+        uint8_t is_exp = 0;
+        uint8_t is_hex_float = 0;
+        uint8_t error = 0;
 
-        // Float sem parte inteira, e.g. .5f, .1e-2
         if(c == '.'){
             is_float = 1;
-            
             while(is_digit(peek(l))){
                 advance(l);
             }
-            
-            // Exponentials
-            if(peek(l) == 'e' || peek(l) == 'E'){
-                advance(l);
-
-                if(peek(l) == '-' || peek(l) == '+'){
-                    advance(l);
-                }
-
-                if(!is_digit(peek(l))){
-                    return set_token(l, TOK_ERR, tok_line, tok_col);
-                }
-
-                while(is_digit(peek(l))){
-                    advance(l);
-                }
+            if(to_upper(peek(l)) == 'E'){
+                error = !lex_exp_numeral(l);
             }
         }
-        // Hexadecimal
-        else if(c == '0' && (peek(l) == 'x' || peek(l) == 'X')){
+        else if(c == '0' && (peek(l) == 'X' || peek(l) == 'x')){
             advance(l);
-
-            uint32_t has_hex_digits = 0;
-            uint32_t has_fraction_digits = 0;
-            uint32_t has_exp_digits = 0;
-            uint32_t has_exp = 0;
-
-            while(is_hex(peek(l))){
-                advance(l);
-                has_hex_digits = 1;
-            }
-
-            // Float hexs
-            if(peek(l) == '.'){
-                is_float = 1;
-                advance(l);
-                while(is_hex(peek(l))){
-                    advance(l);
-                    has_fraction_digits = 1;
-                }
-            }
-            
-            if(peek(l) == 'p' || peek(l) == 'P'){
-                is_float = 1;
-                has_exp = 1;
-
-                advance(l);
-
-                if(peek(l) == '+' || peek(l) == '-'){
-                    advance(l);
-                }
-
-                while(is_digit(peek(l))){
-                    advance(l);
-                    has_exp_digits = 1;
-                }
-
-                if(!has_exp_digits){
-                    return set_token(l, TOK_ERR, tok_line, tok_col);
-                }
-            }
-
-            if(is_float){
-                if(!has_exp){
-                    return set_token(l, TOK_ERR, tok_line, tok_col);
-                }
-
-                if(!has_hex_digits && !has_fraction_digits){
-                    return set_token(l, TOK_ERR, tok_line, tok_col);
-                }
-
-                if(has_fraction_digits){
-                    hex_float_flag = 1;
-                }
-            }
-
-            if(!is_float && !has_hex_digits){
-                return set_token(l, TOK_ERR, tok_line, tok_col);
-            }
+            error = !lex_hex_numeral(l, &is_float, &is_hex_float);
         }
-        // Octals
         else if(c == '0' && is_octal(peek(l))){
-            while(is_octal(peek(l))){
-                advance(l);
-            }
-
-            if(is_digit(peek(l))){
-                while(is_alnum(peek(l))){
-                    advance(l);
-                }
-                return set_token(l, TOK_ERR, tok_line, tok_col);
-            }
+            error = !lex_octal_numeral(l);
         }
-        // Decimals
         else{
-            while(is_digit(peek(l))){
-                advance(l);
-            }
-
-            // Decimal floats, e.g. 1.0, 23.9, 0.3
-            if(peek(l) == '.'){
-                is_float = 1;
-                advance(l);
-
-                while(is_digit(peek(l))){
-                    advance(l);
-                }
-            }
-
-            // Exponential "integer" (float), e.g. 2e8, 10e-5, 3e+2
-            if(peek(l) == 'e' || peek(l) == 'E'){
-                is_float = 1;
-                exp_flag = 1;
-                advance(l);
-
-                if(peek(l) == '-' || peek(l) == '+'){
-                    advance(l);
-                }
-
-                if(!is_digit(peek(l))){
-                    return set_token(l, TOK_ERR, tok_line, tok_col);
-                }
-
-                while(is_digit(peek(l))){
-                    advance(l);
-                }
-            }
+            error = !lex_decimal_numeral(l, &is_float, &is_exp);
         }
 
-        // Sufixos de float
+        // float suffix
         if(peek(l) == 'f' || peek(l) == 'F'){
             is_float = 1;
             advance(l);
         }
         else if(peek(l) == 'l' || peek(l) == 'L'){
-            if(is_float && (hex_float_flag || exp_flag)){
+            // annoying float suffix
+            if(is_float && (is_hex_float || is_exp)){
                 advance(l);
             }
+            // double float suffix
             else if(peek_next(l) == 'f' || peek_next(l) == 'F'){
                 is_float = 1;
                 advance(l);
                 advance(l);
             }
         }
-        // Sufixos de int
+        // int suffix
         else if(!is_float){
             if(peek(l) == 'u' || peek(l) == 'U'){
                 advance(l);
@@ -436,21 +418,25 @@ Token* next_token(Lexer *l){
                 }
             }
         }
-        // Handle de erros de sufixo
+        // suffix error
         if(is_alnum(peek(l))){
             while(is_alnum(peek(l))){
                 advance(l);
             }
             return set_token(l, TOK_ERR, tok_line, tok_col);
         }
-
+        // error check
+        if(error){
+            return set_token(l, TOK_ERR, tok_line, tok_col);
+        }
+        // float or int
         if(is_float){
             return set_token(l, TOK_NUM_FLOAT, tok_line, tok_col);
         }
         return set_token(l, TOK_NUM_INT, tok_line, tok_col);
     }
     
-    // Operators e Separators
+    // punctuators, separators, operators and other stuff
     switch(c){
         case '#':
             if(match(l, '#')){
