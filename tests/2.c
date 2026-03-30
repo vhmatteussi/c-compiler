@@ -22,6 +22,10 @@ unsigned long main(void* hello){
     'hello world'
     '民' // maybe parser error
     '\m'
+
+    ''
+    L''
+    ""
 }
 
 #endif

@@ -5,9 +5,9 @@
 
 const char *token_to_str(TokenType type){
     switch(type){
-        #define X(name) case name: return #name;
+        #define TOK(name) case name: return #name;
             TOKEN_LIST
-        #undef X
+        #undef TOK
     }
     return "something went wrong";
 }

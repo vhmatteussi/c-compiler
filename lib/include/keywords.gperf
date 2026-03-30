@@ -27,6 +27,7 @@ unsigned, TOK_KW_UNSIGNED
 static, TOK_KW_STATIC
 extern, TOK_KW_EXTERN
 auto, TOK_KW_AUTO
+const, TOK_WK_CONST
 volatile, TOK_KW_VOLATILE
 register, TOK_KW_REGISTER
 goto, TOK_KW_GOTO

@@ -24,12 +24,12 @@ unsigned char peek_next(Lexer *l){
     return l->src[l->forward + 1];
 }
 
-uint32_t match(Lexer *l, unsigned char to_match){
+bool match(Lexer *l, unsigned char to_match){
     if(peek(l) != to_match){
-        return 0;
+        return false;
     }
     advance(l);
-    return 1;
+    return true;
 }
 
 void advance(Lexer *l){
@@ -63,7 +63,7 @@ Token* set_token(Lexer *l, TokenType type, size_t line, size_t col){
     return token;
 }
 
-uint32_t skip_whitespace(Lexer *l){
+bool skip_whitespace(Lexer *l){
     while(1){
         unsigned char c = peek(l);
         if(is_whitespace(c)){
@@ -82,17 +82,17 @@ uint32_t skip_whitespace(Lexer *l){
                     advance(l);
                 }
                 if(peek(l) == '\0'){
-                    return 1;
+                    return true;
                 }
                 advance(l);
                 advance(l);
             }
             else{
-                return 0;
+                return false;
             }
         }
         else{
-            return 0;
+            return false;
         }
     }
 }
@@ -201,6 +201,7 @@ Token* next_token(Lexer *l){
             advance(l);
         }
         if(peek(l) == '\''){
+            advance(l);
             return set_token(l, TOK_ERR, tok_line, tok_col);
         }
         return lex_literals(l, '\'', TOK_LIT_CHAR, tok_line, tok_col);

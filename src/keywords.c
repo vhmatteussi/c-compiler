@@ -1,6 +1,6 @@
 /* ANSI-C code produced by gperf version 3.1 */
 /* Command-line: gperf -t -N lookup_keyword lib/include/keywords.gperf  */
-/* Computed positions: -k'1,$' */
+/* Computed positions: -k'1,3' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
       && ('%' == 37) && ('&' == 38) && ('\'' == 39) && ('(' == 40) \
@@ -45,12 +45,12 @@ typedef struct KeywordMap{
 #line 15 "lib/include/keywords.gperf"
 struct KeywordMap;
 
-#define TOTAL_KEYWORDS 36
+#define TOTAL_KEYWORDS 37
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 8
-#define MIN_HASH_VALUE 4
-#define MAX_HASH_VALUE 55
-/* maximum key range = 52, duplicates = 0 */
+#define MIN_HASH_VALUE 3
+#define MAX_HASH_VALUE 49
+/* maximum key range = 47, duplicates = 0 */
 
 #ifdef __GNUC__
 __inline
@@ -64,34 +64,46 @@ hash (register const char *str, register size_t len)
 {
   static unsigned char asso_values[] =
     {
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56,  0, 56, 10, 10, 20,
-      25,  5, 15,  0,  0, 30, 56,  5,  0, 25,
-      40,  5, 56, 56,  0,  0,  5, 10, 10,  5,
-      20, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 20, 50, 35, 10, 10,
+      15, 20,  0, 10, 50,  5, 50, 50, 25, 50,
+      15,  0,  5, 50,  0,  5,  0, 10, 15,  5,
+      50, 50, 30, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
+      50, 50, 50, 50, 50, 50
     };
-  return len + asso_values[(unsigned char)str[len - 1]] + asso_values[(unsigned char)str[0]];
+  register unsigned int hval = len;
+
+  switch (hval)
+    {
+      default:
+        hval += asso_values[(unsigned char)str[2]];
+      /*FALLTHROUGH*/
+      case 2:
+      case 1:
+        hval += asso_values[(unsigned char)str[0]];
+        break;
+    }
+  return hval;
 }
 
 struct KeywordMap *
@@ -99,90 +111,89 @@ lookup_keyword (register const char *str, register size_t len)
 {
   static struct KeywordMap wordlist[] =
     {
-      {""}, {""}, {""}, {""},
-#line 21 "lib/include/keywords.gperf"
-      {"long", TOK_KW_LONG},
-#line 51 "lib/include/keywords.gperf"
-      {"_Bool", TOK_KW_BOOL},
-#line 35 "lib/include/keywords.gperf"
-      {"switch", TOK_KW_SWITCH},
-      {""},
-#line 31 "lib/include/keywords.gperf"
-      {"register", TOK_KW_REGISTER},
-#line 32 "lib/include/keywords.gperf"
-      {"goto", TOK_KW_GOTO},
-#line 20 "lib/include/keywords.gperf"
-      {"short", TOK_KW_SHORT},
-#line 45 "lib/include/keywords.gperf"
-      {"struct", TOK_KW_STRUCT},
-      {""},
-#line 50 "lib/include/keywords.gperf"
-      {"restrict", TOK_KW_RESTRICT},
-#line 34 "lib/include/keywords.gperf"
-      {"else", TOK_KW_ELSE},
-#line 41 "lib/include/keywords.gperf"
-      {"while", TOK_KW_WHILE},
-      {""},
-#line 53 "lib/include/keywords.gperf"
-      {"_Pragma", TOK_KW_PRAGMA},
-#line 42 "lib/include/keywords.gperf"
+      {""}, {""}, {""},
+#line 43 "lib/include/keywords.gperf"
       {"for", TOK_KW_FOR},
-#line 29 "lib/include/keywords.gperf"
-      {"auto", TOK_KW_AUTO},
-#line 38 "lib/include/keywords.gperf"
-      {"break", TOK_KW_BREAK},
-#line 48 "lib/include/keywords.gperf"
-      {"sizeof", TOK_KW_SIZEOF},
       {""},
-#line 30 "lib/include/keywords.gperf"
-      {"volatile", TOK_KW_VOLATILE},
-#line 18 "lib/include/keywords.gperf"
-      {"char", TOK_KW_CHAR},
 #line 22 "lib/include/keywords.gperf"
       {"float", TOK_KW_FLOAT},
-#line 27 "lib/include/keywords.gperf"
-      {"static", TOK_KW_STATIC},
-#line 47 "lib/include/keywords.gperf"
-      {"typedef", TOK_KW_TYPEDEF},
-#line 52 "lib/include/keywords.gperf"
-      {"_Complex", TOK_KW_COMPLEX},
-#line 36 "lib/include/keywords.gperf"
-      {"case", TOK_KW_CASE},
-      {""},
-#line 25 "lib/include/keywords.gperf"
-      {"signed", TOK_KW_SIGNED},
-#line 40 "lib/include/keywords.gperf"
-      {"do", TOK_KW_DO},
-#line 39 "lib/include/keywords.gperf"
-      {"continue", TOK_KW_CONTINUE},
 #line 44 "lib/include/keywords.gperf"
-      {"enum", TOK_KW_ENUM},
-      {""},
-#line 23 "lib/include/keywords.gperf"
-      {"double", TOK_KW_DOUBLE},
-#line 37 "lib/include/keywords.gperf"
-      {"default", TOK_KW_DEFAULT},
+      {"return", TOK_KW_RETURN},
+#line 34 "lib/include/keywords.gperf"
+      {"if", TOK_KW_IF},
 #line 19 "lib/include/keywords.gperf"
       {"int", TOK_KW_INT},
-#line 24 "lib/include/keywords.gperf"
-      {"void", TOK_KW_VOID},
       {""},
-#line 49 "lib/include/keywords.gperf"
-      {"inline", TOK_KW_INLINE},
-      {""},
+#line 20 "lib/include/keywords.gperf"
+      {"short", TOK_KW_SHORT},
+#line 46 "lib/include/keywords.gperf"
+      {"struct", TOK_KW_STRUCT},
+#line 48 "lib/include/keywords.gperf"
+      {"typedef", TOK_KW_TYPEDEF},
+#line 51 "lib/include/keywords.gperf"
+      {"restrict", TOK_KW_RESTRICT},
+#line 33 "lib/include/keywords.gperf"
+      {"goto", TOK_KW_GOTO},
+#line 42 "lib/include/keywords.gperf"
+      {"while", TOK_KW_WHILE},
+#line 36 "lib/include/keywords.gperf"
+      {"switch", TOK_KW_SWITCH},
+#line 41 "lib/include/keywords.gperf"
+      {"do", TOK_KW_DO},
+#line 32 "lib/include/keywords.gperf"
+      {"register", TOK_KW_REGISTER},
+#line 37 "lib/include/keywords.gperf"
+      {"case", TOK_KW_CASE},
+#line 47 "lib/include/keywords.gperf"
+      {"union", TOK_KW_UNION},
+#line 25 "lib/include/keywords.gperf"
+      {"signed", TOK_KW_SIGNED},
+#line 38 "lib/include/keywords.gperf"
+      {"default", TOK_KW_DEFAULT},
 #line 26 "lib/include/keywords.gperf"
       {"unsigned", TOK_KW_UNSIGNED},
-      {""}, {""},
-#line 43 "lib/include/keywords.gperf"
-      {"return", TOK_KW_RETURN},
-#line 33 "lib/include/keywords.gperf"
-      {"if", TOK_KW_IF},
-      {""}, {""}, {""},
+#line 24 "lib/include/keywords.gperf"
+      {"void", TOK_KW_VOID},
+#line 52 "lib/include/keywords.gperf"
+      {"_Bool", TOK_KW_BOOL},
 #line 28 "lib/include/keywords.gperf"
       {"extern", TOK_KW_EXTERN},
-      {""}, {""}, {""},
-#line 46 "lib/include/keywords.gperf"
-      {"union", TOK_KW_UNION}
+#line 54 "lib/include/keywords.gperf"
+      {"_Pragma", TOK_KW_PRAGMA},
+#line 53 "lib/include/keywords.gperf"
+      {"_Complex", TOK_KW_COMPLEX},
+#line 35 "lib/include/keywords.gperf"
+      {"else", TOK_KW_ELSE},
+#line 30 "lib/include/keywords.gperf"
+      {"const", TOK_WK_CONST},
+#line 23 "lib/include/keywords.gperf"
+      {"double", TOK_KW_DOUBLE},
+      {""},
+#line 40 "lib/include/keywords.gperf"
+      {"continue", TOK_KW_CONTINUE},
+#line 45 "lib/include/keywords.gperf"
+      {"enum", TOK_KW_ENUM},
+#line 39 "lib/include/keywords.gperf"
+      {"break", TOK_KW_BREAK},
+#line 50 "lib/include/keywords.gperf"
+      {"inline", TOK_KW_INLINE},
+      {""}, {""},
+#line 29 "lib/include/keywords.gperf"
+      {"auto", TOK_KW_AUTO},
+      {""},
+#line 49 "lib/include/keywords.gperf"
+      {"sizeof", TOK_KW_SIZEOF},
+      {""}, {""},
+#line 21 "lib/include/keywords.gperf"
+      {"long", TOK_KW_LONG},
+      {""},
+#line 27 "lib/include/keywords.gperf"
+      {"static", TOK_KW_STATIC},
+      {""},
+#line 31 "lib/include/keywords.gperf"
+      {"volatile", TOK_KW_VOLATILE},
+#line 18 "lib/include/keywords.gperf"
+      {"char", TOK_KW_CHAR}
     };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
