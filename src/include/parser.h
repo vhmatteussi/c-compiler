@@ -2,6 +2,7 @@
 #define COMPILER_PARSER_H
 
 #include "lexer.h"
+#include <stdio.h>
 
 typedef struct Parser{
     Lexer *l;

@@ -1,16 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "token.h"
-#include "lexer.h"
-
-const char *token_to_str(TokenType type){
-    switch(type){
-        #define TOK(name) case name: return #name;
-            TOKEN_LIST
-        #undef TOK
-    }
-    return "something went wrong";
-}
+#include "parser.h"
 
 unsigned char *read_source(Arena *a, const char *file_path){
     FILE *file = fopen(file_path, "rb");
@@ -69,30 +59,15 @@ int main(int argc, char *argv[]){
     }
 
     Lexer *lexer = init_lexer(&compiler_arena, source_code);
-    Token *tok;
-    Token *error_list[1000];
-    int error_count=0;
+    Parser p;
+    p.l = lexer;
+    advance(&p);
 
-    printf("%-5s | %-5s | %-24s | %s\n", "LINE", "COL", "TYPE", "LEX");
-    printf("-------------------------------------------------------\n");
-
-    do{
-        tok = next_token(lexer);
-        if(tok->type == TOK_ERR){
-            error_list[error_count] = tok;
-            error_count++;
-        }
-        printf("%-5zu | %-5zu | %-24s | %s\n", tok->line, tok->col, token_to_str(tok->type), tok->lex->data);
-    }while(tok->type != TOK_EOF);
-
-    printf("Done with %d errors:\n", error_count);
-    printf("-------------------------------------------------------\n");
-
-    for(int i=0; i<error_count; i++){
-        printf("at line: %zu and col: %zu, invalid token: %s\n", error_list[i]->line, error_list[i]->col, error_list[i]->lex->data);
+    bool parse = translation_unit(&p);
+    printf("\n");
+    if(parse && get_current_token(&p)){
+        printf("no syntax errors found\n");
     }
-
-    printf("-------------------------------------------------------\n");
 
     free(backing_mem);
     exit(0);

@@ -1,11 +1,12 @@
 TARGET = main
 CC = gcc
 CFLAGS = -Wall -Wextra -g -Ilib/include -Isrc/include
-SRCS = src/lexer.c \
-       lib/alloc.c \
-       lib/strings.c \
-       lib/type.c \
-       src/main.c
+SRCS = 	src/lexer.c \
+		src/parser.c \
+       	lib/alloc.c \
+       	lib/strings.c \
+       	lib/type.c \
+       	src/main.c
 
 OBJS = $(SRCS:.c=.o)
 all: $(TARGET)

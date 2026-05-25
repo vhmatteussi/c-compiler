@@ -1,5 +1,8 @@
 #include "parser.h"
 
+// full rng that represents the lenght i am willing to write an error message
+#define ERROR_LENGHT 32
+
 void advance(Parser *p){
     p->current_token = next_token(p->l);
 }
@@ -16,8 +19,28 @@ bool match(Parser *p, TokenType type_to_match){
     return false;
 }
 
-void error(Parser *p){
-    printf("Syntax error at line %zu col %zu\n", p->l->line, p->l->col);
+void syncronize(Parser *p, char* message){
+    printf("expected %s at line %zu col %zu\n", message, p->l->line, p->l->col);
+
+    while(get_current_token(p) != TOK_EOF){
+        if(get_current_token(p) == TOK_SEMICOLON){
+            advance(p);
+            return;
+        }
+        if(get_current_token(p) == TOK_RBRACE){
+            advance(p);
+            return;
+        }
+        if(get_current_token(p) == TOK_LPAREN){
+            advance(p);
+            return;
+        }
+        if(get_current_token(p) == TOK_RBRACKET){
+            advance(p);
+            return;
+        }
+        advance(p);
+    }
 }
 
 bool translation_unit(Parser *p){
@@ -81,6 +104,8 @@ bool storage_class_specifiers(Parser *p){
         case TOK_KW_REGISTER:
             advance(p);
             return true;
+        default:
+            return false;
     }
     return false;
 }
@@ -100,6 +125,8 @@ bool type_specifier(Parser *p){
         case TOK_KW_COMPLEX:
             advance(p);
             return true;
+        default:
+            return false;
     }
     if(struct_or_union_specifier(p)){
         return true;
@@ -124,6 +151,7 @@ bool struct_or_union_specifier(Parser *p){
             return false;
         }
         if(!match(p, TOK_RBRACE)){
+            syncronize(p, "}");
             return false;
         }
         return true;
@@ -140,6 +168,8 @@ bool struct_or_union(Parser *p){
         case TOK_KW_UNION:
             advance(p);
             return true;
+        default:
+            return false;
     }
     return false;
 }
@@ -160,6 +190,7 @@ bool struct_declaration(Parser *p){
         return false;
     }
     if(!match(p, TOK_SEMICOLON)){
+        syncronize(p, ";");
         return false;
     }
     return true;
@@ -184,6 +215,8 @@ bool type_qualifier(Parser *p){
         case TOK_KW_VOLATILE:
             advance(p);
             return true;
+        default:
+            return false;
     }
     return false;
 }
@@ -249,6 +282,7 @@ bool direct_declarator(Parser *p){
             return false;
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         has_base_case = true;
@@ -279,6 +313,7 @@ bool direct_declarator(Parser *p){
                 }
             }
             if(!match(p, TOK_RBRACKET)){
+                syncronize(p, "]");
                 return false;
             }
             continue_recursion = true;
@@ -289,6 +324,7 @@ bool direct_declarator(Parser *p){
                 identifier_list(p);
             }
             if(!match(p, TOK_RPAREN)){
+                syncronize(p, ")");
                 return false;
             }
             continue_recursion = true;
@@ -323,6 +359,7 @@ bool conditional_expression(Parser *p){
             return false;
         }
         if(!match(p, TOK_COLON)){
+            syncronize(p, ":");
             return false;
         }
         if(!conditional_expression(p)){
@@ -501,6 +538,7 @@ bool unary_expression(Parser *p){
                 return false;
             }
             if(!match(p, TOK_RPAREN)){
+                syncronize(p, ")");
                 return false;
             }
         }
@@ -519,9 +557,11 @@ bool postfix_expression(Parser *p){
             return false;
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         if(!match(p, TOK_LBRACE)){
+            syncronize(p, "{");
             return false;
         }
         if(!initializer_list(p)){
@@ -529,6 +569,7 @@ bool postfix_expression(Parser *p){
         }
         match(p, TOK_COMMA);
         if(!match(p, TOK_RBRACE)){
+            syncronize(p, "}");
             return false;
         }
         has_base_case = true;
@@ -541,6 +582,7 @@ bool postfix_expression(Parser *p){
                 return false;
             }
             if(!match(p, TOK_RBRACKET)){
+                syncronize(p, "]");
                 return false;
             }
             has_base_case = true;
@@ -549,6 +591,7 @@ bool postfix_expression(Parser *p){
         else if(match(p, TOK_LPAREN)){
             argument_expression_list(p);
             if(!match(p, TOK_RPAREN)){
+                syncronize(p, ")");
                 return false;
             }
             has_base_case = true;
@@ -595,6 +638,7 @@ bool primary_expression(Parser *p){
             return false;
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         return true;
@@ -650,6 +694,7 @@ bool direct_abstract_declarator(Parser *p){
     if(match(p, TOK_LPAREN)){
         if(abstract_declarator(p)){
             if(!match(p, TOK_RPAREN)){
+                syncronize(p, ")");
                 return false;
             }
             has_base_case = true;
@@ -657,6 +702,7 @@ bool direct_abstract_declarator(Parser *p){
         else{
             parameter_list(p);
             if(!match(p, TOK_RPAREN)){
+                syncronize(p, ")");
                 return false;
             }
             has_base_case = true;
@@ -685,6 +731,7 @@ bool direct_abstract_declarator(Parser *p){
                 }
             }
             if(!match(p, TOK_RBRACKET)){
+                syncronize(p, "]");
                 return false;
             }
             continue_recursion = true;
@@ -693,6 +740,7 @@ bool direct_abstract_declarator(Parser *p){
         else if(match(p, TOK_LPAREN)){
             parameter_type_list(p);
             if(!match(p, TOK_RPAREN)){
+                syncronize(p, ")");
                 return false;
             }
             continue_recursion = true;
@@ -708,6 +756,7 @@ bool parameter_type_list(Parser *p){
     }
     while(match(p, TOK_COMMA)){
         if(!match(p, TOK_ELLIPSIS)){
+            syncronize(p, "...");
             return false;
         }
     }
@@ -775,12 +824,14 @@ bool designator(Parser *p){
             return false;
         }
         if(!match(p, TOK_RBRACKET)){
+            syncronize(p, "}");
             return false;
         }
         return true;
     }
     if(match(p, TOK_DOT)){
         if(!match(p, TOK_ID)){
+            syncronize(p, "identifier");
             return false;
         }
         return true;
@@ -805,6 +856,7 @@ bool initializer(Parser *p){
         }
         match(p, TOK_COMMA);
         if(!match(p, TOK_RBRACE)){
+            syncronize(p, "}");
             return false;
         }
         return true;
@@ -822,6 +874,8 @@ bool unary_operator(Parser *p){
         case TOK_LOGICAL_NOT:
             advance(p);
             return true;
+        default:
+            return false;
     }
     return false;
 }
@@ -841,16 +895,18 @@ bool assignment_operator(Parser *p){
         case TOK_XOR_ASSIGN:
             advance(p);
             return true;
+        default:
+            return false;
     }
     return false;
 }
 
 bool identifier_list(Parser *p){
-    if(!identifier(p)){
+    if(!match(p, TOK_ID)){
         return false;
     }
     while(match(p, TOK_COMMA)){
-        if(!identifier(p)){
+        if(!match(p, TOK_ID)){
             return false;
         }
     }
@@ -868,6 +924,7 @@ bool enum_specifier(Parser *p){
         }
         match(p, TOK_COMMA);
         if(!match(p, TOK_RBRACE)){
+            syncronize(p, "}");
             return false;
         }
         return true;
@@ -896,6 +953,7 @@ bool enumarator(Parser *p){
     }
     if(match(p, TOK_ASSIGN)){
         if(!constant_expression(p)){
+            syncronize(p, "constant expression");
             return false;
         }
     }
@@ -930,6 +988,7 @@ bool declaration(Parser *p){
     }
     init_declarator_list(p);
     if(!match(p, TOK_SEMICOLON)){
+        syncronize(p, ";");
         return false;
     }
     return true;    
@@ -941,6 +1000,7 @@ bool init_declarator_list(Parser *p){
     }
     while(match(p, TOK_COMMA)){
         if(!init_declarator(p)){
+            syncronize(p, "declarator");
             return false;
         }
     }
@@ -953,6 +1013,7 @@ bool init_declarator(Parser *p){
     }
     if(match(p, TOK_ASSIGN)){
         if(!initializer(p)){
+            syncronize(p, "initializer");
             return false;
         }
     }
@@ -963,6 +1024,7 @@ bool compound_statement(Parser *p){
     if(match(p, TOK_LBRACE)){
         block_item_list(p);
         if(!match(p, TOK_RBRACE)){
+            syncronize(p, "}");
             return false;
         }
         return true;
@@ -1025,6 +1087,7 @@ bool labeled_statement(Parser *p){
             return false;
         }
         if(!match(p, TOK_COLON)){
+            syncronize(p, ":");
             return false;
         }
         if(!statement(p)){
@@ -1034,6 +1097,7 @@ bool labeled_statement(Parser *p){
     }
     if(match(p, TOK_KW_DEFAULT)){
         if(!match(p, TOK_COLON)){
+            syncronize(p, ":");
             return false;
         }
         if(!statement(p)){
@@ -1047,6 +1111,7 @@ bool labeled_statement(Parser *p){
 bool expression_statement(Parser *p){
     expression(p);
     if(!match(p, TOK_SEMICOLON)){
+        syncronize(p, ";");
         return false;
     }
     return true;
@@ -1055,12 +1120,15 @@ bool expression_statement(Parser *p){
 bool selection_statement(Parser *p){
     if(match(p, TOK_KW_IF)){
         if(!match(p, TOK_LPAREN)){
+            syncronize(p, "(");
             return false;
         }
         if(!expression(p)){
+            syncronize(p, "expression");
             return false;
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         if(!statement(p)){
@@ -1075,12 +1143,15 @@ bool selection_statement(Parser *p){
     }
     if(match(p, TOK_KW_SWITCH)){
         if(!match(p, TOK_LPAREN)){
+            syncronize(p, "(");
             return false;
         }
         if(!expression(p)){
+            syncronize(p, "expression");
             return false;
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         if(!statement(p)){
@@ -1094,15 +1165,19 @@ bool selection_statement(Parser *p){
 bool iteration_statement(Parser *p){
     if(match(p, TOK_KW_WHILE)){
         if(!match(p, TOK_LPAREN)){
+            syncronize(p, "(");
             return false;
         }
         if(!expression(p)){
+            syncronize(p, "expression");
             return false;
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         if(!statement(p)){
+            syncronize(p, "while statement");
             return false;
         }
         return true;
@@ -1112,36 +1187,41 @@ bool iteration_statement(Parser *p){
             return false;
         }
         if(!match(p, TOK_KW_WHILE)){
+            syncronize(p, "while");
             return false;
         }
         if(!match(p, TOK_LPAREN)){
+            syncronize(p, "(");
             return false;
         }
         if(!expression(p)){
+            syncronize(p, "expression");
             return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return false;
-        }
-        if(!statement(p)){
+            syncronize(p, ")");
             return false;
         }
         if(!match(p, TOK_SEMICOLON)){
+            syncronize(p, ";");
             return false;
         }
         return true;
     }
     if(match(p, TOK_KW_FOR)){
         if(!match(p, TOK_LPAREN)){
+            syncronize(p, "(");
             return false;
         }
         if(!declaration(p)){
             expression(p);
             if(!match(p, TOK_SEMICOLON)){
+                syncronize(p, ";");
                 return false;
             }
             expression(p);
             if(!match(p, TOK_SEMICOLON)){
+                syncronize(p, ";");
                 return false;
             }
             expression(p);
@@ -1149,11 +1229,13 @@ bool iteration_statement(Parser *p){
         else{
             expression(p);
             if(!match(p, TOK_SEMICOLON)){
+                syncronize(p, ";");
                 return false;
             }
             expression(p);
         }
         if(!match(p, TOK_RPAREN)){
+            syncronize(p, ")");
             return false;
         }
         if(!statement(p)){
@@ -1167,21 +1249,25 @@ bool iteration_statement(Parser *p){
 bool jump_statement(Parser *p){
     if(match(p, TOK_KW_GOTO)){
         if(!match(p, TOK_ID)){
+            syncronize(p, "label");
             return false;
         }
         if(!match(p, TOK_SEMICOLON)){
+            syncronize(p, ";");
             return false;
         }
         return true;
     }
     if(match(p, TOK_KW_CONTINUE)){
         if(!match(p, TOK_SEMICOLON)){
+            syncronize(p, ";");
             return false;
         }
         return true;
     }
     if(match(p, TOK_KW_BREAK)){
         if(!match(p, TOK_SEMICOLON)){
+            syncronize(p, ";");
             return false;
         }
         return true;
@@ -1189,6 +1275,7 @@ bool jump_statement(Parser *p){
     if(match(p, TOK_KW_RETURN)){
         expression(p);
         if(!match(p, TOK_SEMICOLON)){
+            syncronize(p, ";");
             return false;
         }
         return true;

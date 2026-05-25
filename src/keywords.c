@@ -165,7 +165,7 @@ lookup_keyword (register const char *str, register size_t len)
 #line 35 "lib/include/keywords.gperf"
       {"else", TOK_KW_ELSE},
 #line 30 "lib/include/keywords.gperf"
-      {"const", TOK_WK_CONST},
+      {"const", TOK_KW_CONST},
 #line 23 "lib/include/keywords.gperf"
       {"double", TOK_KW_DOUBLE},
       {""},
