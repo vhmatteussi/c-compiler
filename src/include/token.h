@@ -21,7 +21,7 @@
         TOK(TOK_KW_STATIC) \
         TOK(TOK_KW_EXTERN) \
         TOK(TOK_KW_AUTO) \
-        TOK(TOK_WK_CONST) \
+        TOK(TOK_KW_CONST) \
         TOK(TOK_KW_VOLATILE) \
         TOK(TOK_KW_REGISTER) \
         TOK(TOK_KW_GOTO) \

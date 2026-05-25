@@ -32,21 +32,27 @@ bool is_octal(unsigned char c){
     return ((unsigned char)(c - '0') < _MAX_OCTAL_NUM);
 }
 
-static const uint64_t escape_mask[4] = {
-    (UINT64_C(1) << '"')       | (UINT64_C(1) << '\'')     | (UINT64_C(1) << '?'),                                      // 0 - 63
-    (UINT64_C(1) << ('\\'-64)) | (UINT64_C(1) << ('a'-64)) | (UINT64_C(1) << ('b'-64)) | (UINT64_C(1) << ('f'-64)) |    // 64 - 127
-    (UINT64_C(1) << ('n'-64))  | (UINT64_C(1) << ('r'-64)) | (UINT64_C(1) << ('t'-64)) | (UINT64_C(1) << ('v'-64)),
-    UINT64_C(0),                                                                                                        // 128 - 191
-    UINT64_C(0)                                                                                                         // 192 - 255
-};
-
 bool is_in_escape_list(unsigned char c){
-    // i won't write down how it works, look at my fun little drawing instead:
-    // https://excalidraw.com/#json=Os8zNbPbNxhyE6jIt16mM,ZMHJHF0ysKZ6McKMvRuiyA
-    return ((escape_mask[c >> 6] >> (c & 63)) & 1);
+    switch(c){
+        case '"':
+        case '\'':
+        case '?':
+        case '\\':
+        case 'a':
+        case 'b':
+        case 'f':
+        case 'n':
+        case 'r':
+        case 't':
+        case 'v':
+            return true;
+            break;
+        default:
+            return false;
+    }
 }
 
 bool is_whitespace(unsigned char c){
-    // basically, it undeflows 0x00 to 0xff, so \0 isn't considered a/an (english is hard) whitespace
+    // basically, it undeflows 0x00 to 0xff, so \0 isn't considered an whitespace
     return ((unsigned char)(c - 1) < ' ');
 }
