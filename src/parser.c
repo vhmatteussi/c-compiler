@@ -24,19 +24,15 @@ void syncronize(Parser *p, char* message){
 
     while(get_current_token(p) != TOK_EOF){
         if(get_current_token(p) == TOK_SEMICOLON){
-            advance(p);
             return;
         }
         if(get_current_token(p) == TOK_RBRACE){
-            advance(p);
             return;
         }
         if(get_current_token(p) == TOK_LPAREN){
-            advance(p);
             return;
         }
         if(get_current_token(p) == TOK_RBRACKET){
-            advance(p);
             return;
         }
         advance(p);
@@ -1111,7 +1107,7 @@ bool labeled_statement(Parser *p){
 bool expression_statement(Parser *p){
     expression(p);
     if(!match(p, TOK_SEMICOLON)){
-        syncronize(p, ";");
+        //syncronize(p, ";");
         return false;
     }
     return true;
