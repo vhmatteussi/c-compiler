@@ -16,6 +16,7 @@ typedef struct Lexer{
 } Lexer;
 
 Lexer *init_lexer(Arena *a, const unsigned char *src);
+Token *lexer_peek_next_token(Lexer *l);
 Token *next_token(Lexer *l);
 
 #endif

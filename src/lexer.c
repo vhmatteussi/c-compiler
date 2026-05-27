@@ -24,6 +24,21 @@ static unsigned char peek_next(Lexer *l){
     return l->src[l->forward + 1];
 }
 
+Token *lexer_peek_next_token(Lexer *l){
+    size_t start = l->start;
+    size_t forward = l->forward;
+    size_t line = l->line;
+    size_t col = l->col;
+    
+    Token *tok = next_token(l);
+
+    l->start = start;
+    l->forward = forward;
+    l->line = line;
+    l->col = col;
+    return tok;
+}
+
 static void advance(Lexer *l){
     if(peek(l) == '\0'){
         return;

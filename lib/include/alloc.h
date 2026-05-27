@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+// Gemini gave this idea, and it thought it is cute
+#define KB(X) (1024 * X)
+#define MB(X) (KB(KB(X)))
+
 // C99 stuff
 typedef union _MaxAlign{
     long long i;
