@@ -127,6 +127,10 @@ typedef struct Node{
             NodesList list;
             Node *node;
         } ListNodeSolo;
+        struct{
+            NodesList list_a;
+            NodesList list_b;
+        } ListDuo;
     };
 } Node;
 
@@ -149,3 +153,4 @@ Node *ast_token_list(Parser *p, NodeType type, Token *token, NodesList list);
 
 Node *ast_list_solo(Parser *p, NodeType type, NodesList list);
 Node *ast_list_node_solo(Parser *p, NodeType type, NodesList list, Node *node);
+Node *ast_list_duo(Parser *p, NodeType type, NodesList list_a, NodesList list_b);

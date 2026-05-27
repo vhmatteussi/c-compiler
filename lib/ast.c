@@ -104,3 +104,10 @@ Node *ast_list_node_solo(Parser *p, NodeType type, NodesList list, Node *node){
     n->ListNodeSolo.list = list;
     return n;
 }
+
+Node *ast_list_duo(Parser *p, NodeType type, NodesList list_a, NodesList list_b){
+    Node *n = init_node(p, type);
+    n->ListDuo.list_a = list_a;
+    n->ListDuo.list_b = list_b;
+    return n;
+}

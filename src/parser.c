@@ -1,7 +1,16 @@
 #include "parser.h"
 
-Token *get_current_token(Parser *p){
-    return p->current_token;
+Parser *init_parser(Arena *a, Lexer *l){
+    Parser *p = arena_malloc(a, sizeof(Parser));
+    p->l = l;
+    p->had_an_error = false;
+    p->error_count = 0;
+    get_next_token(p);
+    return p;
+}
+
+TokenType get_current_token(Parser *p){
+    return p->current_token->type;
 }
 
 void get_next_token(Parser *p){
@@ -9,95 +18,128 @@ void get_next_token(Parser *p){
 }
 
 bool match(Parser *p, TokenType type_to_match){
-    if(get_current_token(p)->type == type_to_match){
+    if(get_current_token(p) == type_to_match){
         get_next_token(p);
         return true;
     }
     return false;
 }
 
-Node *translation_unit(Parser *p){
-    NodesList *list = NULL;
-    while(get_current_token(p)->type != TOK_EOF){
-        Node *element = external_declaration(p);
-        if(!element){
-            return NULL;
+void parser_error(Parser *p, const char *msg){
+    if(p->had_an_error){
+        return;
+    }
+    p->had_an_error = true;
+    p->error_count++;
+    printf("Error at line %zu, column %zu: Expected %s\n", p->l->line, p->l->col, msg);
+}
+
+static bool is_sync_token(TokenType type){
+    switch(type){
+        case TOK_SEMICOLON:
+        case TOK_RBRACE:
+        case TOK_KW_IF:
+        case TOK_KW_FOR:
+        case TOK_KW_WHILE:
+        case TOK_KW_DO:
+        case TOK_KW_RETURN:
+        case TOK_KW_BREAK:
+        case TOK_KW_CONTINUE:
+        case TOK_KW_GOTO:
+        case TOK_KW_SWITCH:
+        case TOK_KW_CASE:
+        case TOK_KW_DEFAULT:
+        case TOK_EOF:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void panic_mode(Parser *p){
+    p->had_an_error = false;
+    while(get_current_token(p) != TOK_EOF){
+        if(get_current_token(p) == TOK_SEMICOLON){
+            get_next_token(p);
+            return;
         }
-        push_node_list(p, &list, element);
-    }
-    if(list == NULL){
-        return NULL;
-    }
-    return ast_list_solo(p, NODE_TRANSLATION_UNIT, *list);
-}
-
-Node *external_declaration(Parser *p){
-    Node *child = function_definition(p);
-    if(child){
-        return child;
-    }
-    child = declaration(p);
-    if(child){
-        return child;
-    }
-    return NULL;
-}
-
-Node *function_definition(Parser *p){
-    Node *dec_specifiers = declaration_specifiers(p);
-    if(!dec_specifiers){
-        return NULL;
-    }
-    Node *dec = declarator(p);
-    if(!dec){
-        return NULL;
-    }
-    Node *dec_list = declaration_list(p);
-    Node *st = compound_statement(p);
-    if(!st){
-        return NULL;
-    }
-    return ast_node_quartet(p, NODE_FUNCTION_DEF, dec_specifiers, dec, dec_list, st);
-}
-
-Node *declaration_specifiers(Parser *p){
-    NodesList *list = NULL;
-    Node *spec;
-    while(true){
-        if(spec = storage_class_specifiers(p));
-        else if(spec = type_specifier(p));
-        else if(spec = type_qualifier(p));
-        else if(spec = function_specifier(p));
-        else{
-            break;
+        if(is_sync_token(get_current_token(p))){
+            return;
         }
-        nodelist_push(p, &list, spec);
+        get_next_token(p);
     }
-    if(list == NULL){
-        return NULL;
-    }
-    return node_list_solo(p, NODE_DECLARATION_SPECIFIERS, *list);
+    printf("Couldn't recover: EOF\n");
 }
 
-Node *storage_class_specifiers(Parser *p){
-    Token *tok = get_current_token(p);
-    switch(tok->type){
+bool translation_unit(Parser *p){
+    if(!external_declaration(p)){
+        return false;
+    }
+    while(external_declaration(p));
+    return true;
+}
+
+bool external_declaration(Parser *p){
+    if(function_definition(p)){
+        return true;
+    }
+    if(declaration(p)){
+        return true;
+    }
+    return false;
+}
+
+bool function_definition(Parser *p){
+    if(!declaration_specifiers(p)){
+        return false;
+    }
+    if(!declarator(p)){
+        return false;
+    }
+    declaration_list(p);
+    if(!compound_statement(p)){
+        return false;
+    }
+    return true;
+}
+
+bool declaration_specifiers(Parser *p){
+    if(storage_class_specifiers(p)){
+        declaration_specifiers(p);
+        return true;
+    }
+    if(type_specifier(p)){
+        declaration_specifiers(p);
+        return true;
+    }
+    if(type_qualifier(p)){
+        declaration_specifiers(p);
+        return true;
+    }
+    if(function_specifier(p)){
+        declaration_specifiers(p);
+        return true;
+    }
+    return false;
+}
+
+bool storage_class_specifiers(Parser *p){
+    switch(get_current_token(p)){
         case TOK_KW_TYPEDEF:
         case TOK_KW_EXTERN:
         case TOK_KW_STATIC:
         case TOK_KW_AUTO:
         case TOK_KW_REGISTER:
             get_next_token(p);
-            return ast_token_solo(p, NODE_STORAGE_CLASS, tok);
+            return true;
         default:
-            return NULL;
+            return false;
     }
-    return NULL;
+    return false;
 }
 
-Node *type_specifier(Parser *p){
-    Token *tok = get_current_token(p);
-    switch(tok->type){
+bool type_specifier(Parser *p){
+    switch(get_current_token(p)){
         case TOK_KW_VOID:
         case TOK_KW_CHAR:
         case TOK_KW_SHORT:
@@ -110,74 +152,81 @@ Node *type_specifier(Parser *p){
         case TOK_KW_BOOL:
         case TOK_KW_COMPLEX:
             get_next_token(p);
-            return ast_token_solo(p, NODE_TYPE_SPECIFIER, tok);
-        default: 
+            return true;
+        default:
             break;
     }
-    if(tok = struct_or_union_specifier(p));
-    else if(tok = enum_specifier(p));
-    else if(tok = typedef_name(p));
-    if(tok){
-        return ast_token_solo(p, NODE_TYPE_SPECIFIER, tok);
+    if(struct_or_union_specifier(p)){
+        return true;
     }
-    return NULL;
+    if(enum_specifier(p)){
+        return true;
+    }
+    //if(typedef_name(p)){
+        //return true;
+    //}
+    return false;
 }
 
-Node *struct_or_union_specifier(Parser *p){
+bool struct_or_union_specifier(Parser *p){
     if(!struct_or_union(p)){
-        return NULL;
+        return false;
     }
 
     bool has_id = match(p, TOK_ID);
     if(match(p, TOK_LBRACE)){
         if(!struct_declaration_list(p)){
-            return NULL;
+            return false;
         }
         if(!match(p, TOK_RBRACE)){
-            return NULL;
+            parser_error(p, "'}' after struct declaration list");
+            panic_mode(p);
+            return false;
         }
         return true;
     }
     if(!has_id){
-        return NULL;
+        return false;
     }
     return true;
 }
 
-Node *struct_or_union(Parser *p){
-    Token *tok = get_current_token(p);
-    switch(tok->type){
+bool struct_or_union(Parser *p){
+    switch(get_current_token(p)){
         case TOK_KW_STRUCT:
         case TOK_KW_UNION:
             get_next_token(p);
-            return ast_token_solo(p, NODE_TYPE_SPECIFIER, tok);
+            return true;
         default:
-            return NULL;
+            return false;
     }
+    return false;
 }
 
-Node *struct_declaration_list(Parser *p){
+bool struct_declaration_list(Parser *p){
     if(!struct_declaration(p)){
-        return NULL;
+        return false;
     }
     while(struct_declaration(p));
     return true;
 }
 
-Node *struct_declaration(Parser *p){
+bool struct_declaration(Parser *p){
     if(!specifier_qualifier_list(p)){
-        return NULL;
+        return false;
     }
     if(!struct_declarator_list(p)){
-        return NULL;
+        return false;
     }
     if(!match(p, TOK_SEMICOLON)){
-        return NULL;
+        parser_error(p, "';' after struct declaration");
+        panic_mode(p);
+        return false;
     }
     return true;
 }
 
-Node *specifier_qualifier_list(Parser *p){
+bool specifier_qualifier_list(Parser *p){
     if(type_specifier(p)){
         specifier_qualifier_list(p);
         return true;
@@ -186,91 +235,86 @@ Node *specifier_qualifier_list(Parser *p){
         specifier_qualifier_list(p);
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *type_qualifier(Parser *p){
-    Token *tok = get_current_token(p);
-    switch(tok->type){
+bool type_qualifier(Parser *p){
+    switch(get_current_token(p)){
         case TOK_KW_CONST:
         case TOK_KW_RESTRICT:
         case TOK_KW_VOLATILE:
             get_next_token(p);
-            ast_token_solo(p, NODE_TYPE_QUALIFIER, tok);
+            return true;
         default:
-            return NULL;
+            return false;
     }
-    return NULL;
+    return false;
 }
 
-Node *struct_declarator_list(Parser *p){
+bool struct_declarator_list(Parser *p){
     if(!struct_declarator(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_COMMA)){
         if(!struct_declarator(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *struct_declarator(Parser *p){
+bool struct_declarator(Parser *p){
     bool has_declarator = declarator(p);
     if(match(p, TOK_COLON)){
         if(!constant_expression(p)){
-            return NULL;
+            return false;
         }
         return true;
     }
     if(!has_declarator){
-        return NULL;
+        return false;
     }
     return true;
 }
 
-Node *declarator(Parser *p){
-    Node *ptr = pointer(p);
-    Node *direct_dec = direct_declarator(p);
-    if(!direct_dec){
-        return NULL;
+bool declarator(Parser *p){
+    pointer(p);
+    if(!direct_declarator(p)){
+        return false;
     }
-    return ast_node_duo(p, NODE_DECLARATOR, ptr, direct_dec);
+    return true;
 }
 
-Node *pointer(Parser *p){
+bool pointer(Parser *p){
     if(!match(p, TOK_STAR)){
-        return NULL;
+        return false;
     }
     type_qualifier_list(p);
     pointer(p);
     return true;
 }
 
-Node *type_qualifier_list(Parser *p){
-    NodesList *list = NULL;
-    Node *element = type_qualifier(p);
-    if(!element){
-        return NULL;
+bool type_qualifier_list(Parser *p){
+    if(!type_qualifier(p)){
+        return false;
     }
-    while(element){
-        push_node_list(p, &list, element);
-        element = type_qualifier(p);
-    }
-    return ast_list_solo(p, NODE_TYPE_QUALIFIER, *list);
+    while(type_qualifier(p));
+    return true;
 }
 
-Node *direct_declarator(Parser *p){
+bool direct_declarator(Parser *p){
     bool has_base_case = false;
     if(match(p, TOK_ID)){
         has_base_case = true;
     }
     else if(match(p, TOK_LPAREN)){
         if(!declarator(p)){
-            return NULL;
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after declarator");
+            panic_mode(p);
+            return false;
         }
         has_base_case = true;
     }
@@ -281,13 +325,13 @@ Node *direct_declarator(Parser *p){
             if(match(p, TOK_KW_STATIC)){
                 type_qualifier_list(p);
                 if(!assignment_expression(p)){
-                    return NULL;
+                    return false;
                 }
             }
             else if(type_qualifier_list(p)){
                 if(match(p, TOK_KW_STATIC)){
                     if(!assignment_expression(p)){
-                        return NULL;
+                        return false;
                     }
                 }
                 else if(!match(p, TOK_STAR)){
@@ -300,7 +344,9 @@ Node *direct_declarator(Parser *p){
                 }
             }
             if(!match(p, TOK_RBRACKET)){
-                return NULL;
+                parser_error(p, "']'");
+                panic_mode(p);
+                return false;
             }
             continue_recursion = true;
             has_base_case = true;
@@ -310,7 +356,9 @@ Node *direct_declarator(Parser *p){
                 identifier_list(p);
             }
             if(!match(p, TOK_RPAREN)){
-                return NULL;
+                parser_error(p, "')'");
+                panic_mode(p);
+                return false;
             }
             continue_recursion = true;
             has_base_case = true;
@@ -319,379 +367,391 @@ Node *direct_declarator(Parser *p){
     return has_base_case;
 }
 
-Node *assignment_expression(Parser *p){
+bool assignment_expression(Parser *p){
     if(conditional_expression(p)){
         return true;
     }
     if(unary_expression(p)){
         if(!assignment_operator(p)){
-            return NULL;
+            return false;
         }
         if(!assignment_expression(p)){
-            return NULL;
+            return false;
         }
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *conditional_expression(Parser *p){
+bool conditional_expression(Parser *p){
     if(!logical_or_expression(p)){
-        return NULL;
+        return false;
     }
     if(match(p, TOK_QUESTION)){
         if(!expression(p)){
-            return NULL;
+            return false;
         }
         if(!match(p, TOK_COLON)){
-            return NULL;
+            return false;
         }
         if(!conditional_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *logical_or_expression(Parser *p){
+bool logical_or_expression(Parser *p){
     if(!logical_and_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_LOGICAL_OR)){
         if(!logical_and_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *logical_and_expression(Parser *p){
+bool logical_and_expression(Parser *p){
     if(!inclusive_or_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_LOGICAL_AND)){
         if(!inclusive_or_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *inclusive_or_expression(Parser *p){
+bool inclusive_or_expression(Parser *p){
     if(!exclusive_or_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_BIT_OR)){
         if(!exclusive_or_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *exclusive_or_expression(Parser *p){
+bool exclusive_or_expression(Parser *p){
     if(!and_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_BIT_XOR)){
         if(!and_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *and_expression(Parser *p){
+bool and_expression(Parser *p){
     if(!equality_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_BIT_AND)){
         if(!equality_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *equality_expression(Parser *p){
+bool equality_expression(Parser *p){
     if(!relational_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_EQUAL_EQUAL) || match(p,TOK_NOT_EQUAL)){
         if(!relational_expression(p)){
-            return NULL;
+            parser_error(p, "expression after equality operator");
+            panic_mode(p);
+            return false;
         }
     }
     return true;
 }
 
-Node *relational_expression(Parser *p){
+bool relational_expression(Parser *p){
     if(!shift_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_LESS) || match(p, TOK_GREATER) || match(p, TOK_LESS_EQUAL) || match(p, TOK_GREATER_EQUAL)){
         if(!shift_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *shift_expression(Parser *p){
+bool shift_expression(Parser *p){
     if(!additive_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_SHIFT_LEFT) || match(p, TOK_SHIFT_RIGHT)){
         if(!additive_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *additive_expression(Parser *p){
+bool additive_expression(Parser *p){
     if(!multiplicative_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_PLUS) || match(p, TOK_MINUS)){
         if(!multiplicative_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *multiplicative_expression(Parser *p){
+bool multiplicative_expression(Parser *p){
     if(!cast_expression(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_STAR) || match(p, TOK_SLASH) || match(p, TOK_MOD)){
         if(!cast_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *cast_expression(Parser *p){
+bool cast_expression(Parser *p){
     if(unary_expression(p)){
         return true;
     }
     if(match(p, TOK_LPAREN)){
         if(!type_name(p)){
-            return NULL;
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after typecast");
+            panic_mode(p);
+            return false;
         }
         if(!cast_expression(p)){
-            return NULL;
+            return false;
         }
+        return true;
     }
-    return true;
+    return false;
 }
 
-Node *unary_expression(Parser *p){
+bool unary_expression(Parser *p){
     if(postfix_expression(p)){
         return true;
     }
     if(match(p, TOK_INC)){
         if(!unary_expression(p)){
-            return NULL;
+            return false;
         }
         return true;
     }
     if(match(p, TOK_DEC)){
         if(!unary_expression(p)){
-            return NULL;
+            return false;
         }
         return true;
     }
     if(unary_operator(p)){
         if(!cast_expression(p)){
-            return NULL;
+            return false;
         }
         return true;
     }
     if(match(p, TOK_KW_SIZEOF)){
+        ParserState state;
+        parser_save_state(p, &state);
+
         if(unary_expression(p)){
             return true;
         }
+        parser_restore_state(p, &state);
         if(match(p, TOK_LPAREN)){
             if(!type_name(p)){
-                return NULL;
+                return false;
             }
             if(!match(p, TOK_RPAREN)){
-                return NULL;
+                parser_error(p, "')'");
+                panic_mode(p);
+                return false;
             }
         }
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *postfix_expression(Parser *p){
-    Node *base = primary_expression(p);
-    if(!base){
-        if(!match(p, TOK_LPAREN)){
-            return NULL;
-        }
-        Node *tn = type_name(p);
-        if(!tn){
-            return NULL;
+bool postfix_expression(Parser *p){
+    bool has_base_case = false;
+    if(primary_expression(p)){
+        has_base_case = true;
+    }
+    else if(match(p, TOK_LPAREN)){
+        if(!type_name(p)){
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')'");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_LBRACE)){
-            return NULL;
+            return false;
         }
-        Node *init = initializer_list(p);
-        if(!init){
-            return NULL;
+        if(!initializer_list(p)){
+            return false;
         }
         match(p, TOK_COMMA);
         if(!match(p, TOK_RBRACE)){
-            return NULL;
+            parser_error(p, "'}' after ','");
+            panic_mode(p);
+            return false;
         }
-        base = ast_node_solo(p, NODE_INITIALIZER, init);
+        has_base_case = true;
     }
-    while(true){
+    bool continue_recursion = true;
+    while(continue_recursion){
+        continue_recursion = false;
         if(match(p, TOK_LBRACKET)){
-            Node *idx = expression(p);
-            if(!idx){
-                return NULL;
+            if(!expression(p)){
+                return false;
             }
             if(!match(p, TOK_RBRACKET)){
-                return NULL;
+                parser_error(p, "']' after expression");
+                panic_mode(p);
+                return false;
             }
-            base = ast_node_duo(p, NODE_EXP_INDEX, base, idx);
+            has_base_case = true;
+            continue_recursion = true;
         }
         else if(match(p, TOK_LPAREN)){
-            Node *args = argument_expression_list(p);
+            argument_expression_list(p);
             if(!match(p, TOK_RPAREN)){
-                return NULL;
+                parser_error(p, "')'");
+                panic_mode(p);
+                return false;
             }
-            base = ast_node_duo(p, NODE_EXP_CALL, base, args);
+            has_base_case = true;
+            continue_recursion = true;
         }
         else if(match(p, TOK_DOT)){
-            if(get_current_token(p)->type != TOK_ID){
-                return NULL;
+            if(!match(p, TOK_ID)){
+                return false;
             }
-            Token *member = get_current_token(p);
-            get_next_token(p);
-            base = ast_token_node_solo(p, NODE_EXP_MEMBER, member, base);
+            has_base_case = true;
+            continue_recursion = true;
         }
         else if(match(p, TOK_ARROW)){
-            if(get_current_token(p)->type != TOK_ID){
-                return NULL;
+            if(!match(p, TOK_ID)){
+                return false;
             }
-            Token *member = get_current_token(p);
-            get_next_token(p);
-            base = ast_token_node_solo(p, NODE_EXP_ARROW, member, base);
+            has_base_case = true;
+            continue_recursion = true;
         }
         else if(match(p, TOK_INC)){
-            base = ast_node_solo(p, NODE_EXP_POST_INC, base);
+            has_base_case = true;
+            continue_recursion = true;
         }
         else if(match(p, TOK_DEC)){
-            base = ast_node_solo(p, NODE_EXP_POST_DEC, base);
-        }
-        else{
-            break;
+            has_base_case = true;
+            continue_recursion = true;
         }
     }
-    return base;
+    return has_base_case;
 }
 
-Node *primary_expression(Parser *p){
-    Token *tok = p->current_token;
-    switch(tok->type){
-        case TOK_ID:
-            get_next_token(p);
-            return ast_token_solo(p, NODE_EXP_IDENTIFIER, tok);
-        case TOK_NUM_INT:
-            get_next_token(p);
-            return ast_token_solo(p, NODE_NUM_INT, tok);
-        case TOK_NUM_FLOAT:
-            get_next_token(p);
-            return ast_token_solo(p, NODE_NUM_FLOAT, tok);
-        case TOK_LIT_CHAR:
-            get_next_token(p);
-            return ast_token_solo(p, NODE_LIT_CHAR, tok);
-        case TOK_LIT_STRING:
-            get_next_token(p);
-            return ast_token_solo(p, NODE_LIT_STRING, tok);
-        case TOK_LPAREN:
-            get_next_token(p);
-            Node *exp = expression(p);
-            if(!exp){
-                return NULL;
-            }
-            if(!match(p, TOK_RPAREN)){
-                return NULL;
-            }
-            return exp;
-        default:
-            return NULL;
-    }
-}
-
-Node *expression(Parser *p){
-    if(assignment_expression(p)){
+bool primary_expression(Parser *p){
+    if(match(p, TOK_ID)){
         return true;
+    }
+    if(match(p, TOK_NUM_INT) || match(p, TOK_NUM_FLOAT)){
+        return true;
+    }
+    if(match(p, TOK_LIT_CHAR) || match(p, TOK_LIT_STRING)){
+        return true;
+    }
+    if(match(p, TOK_LPAREN)){
+        if(!expression(p)){
+            return false;
+        }
+        if(!match(p, TOK_RPAREN)){
+            parser_error(p, "')' after expression");
+            panic_mode(p);
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool expression(Parser *p){
+    if(!assignment_expression(p)){
+        return false;
     }
     while(match(p, TOK_COMMA)){
         if(!assignment_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *argument_expression_list(Parser *p){
+bool argument_expression_list(Parser *p){
     if(assignment_expression(p)){
         return true;
     }
     while(match(p, TOK_COMMA)){
         if(!assignment_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *type_name(Parser *p){
+bool type_name(Parser *p){
     if(!specifier_qualifier_list(p)){
-        return NULL;
+        return false;
     }
     abstract_declarator(p);
     return true;
 }
 
-Node *abstract_declarator(Parser *p){
+bool abstract_declarator(Parser *p){
     bool has_pointer = pointer(p);
     if(direct_abstract_declarator(p)){
         return true;
     }
     if(!has_pointer){
-        return NULL;
+        return false;
     }
     return true;
 }
 
-Node *direct_abstract_declarator(Parser *p){ 
+bool direct_abstract_declarator(Parser *p){ 
     bool has_base_case = false;
     if(match(p, TOK_LPAREN)){
         if(abstract_declarator(p)){
             if(!match(p, TOK_RPAREN)){
-                return NULL;
+                parser_error(p, "')' after abstract declarator");
+                panic_mode(p);
+                return false;
             }
             has_base_case = true;
         }
         else{
             parameter_list(p);
             if(!match(p, TOK_RPAREN)){
-                return NULL;
+                parser_error(p, "')' after parameter list");
+                panic_mode(p);
+                return false;
             }
             has_base_case = true;
         }
@@ -704,14 +764,14 @@ Node *direct_abstract_declarator(Parser *p){
             else if(match(p, TOK_KW_STATIC)){
                 type_qualifier_list(p);
                 if(!assignment_expression(p)){
-                    return NULL;
+                    return false;
                 }
             }
             else{
                 type_qualifier_list(p);
                 if(match(p, TOK_KW_STATIC)){
                     if(!assignment_expression(p)){
-                        return NULL;
+                        return false;
                     }
                 }
                 else{
@@ -719,7 +779,9 @@ Node *direct_abstract_declarator(Parser *p){
                 }
             }
             if(!match(p, TOK_RBRACKET)){
-                return NULL;
+                parser_error(p, "']'");
+                panic_mode(p);
+                return false;
             }
             continue_recursion = true;
             has_base_case = true;
@@ -727,7 +789,9 @@ Node *direct_abstract_declarator(Parser *p){
         else if(match(p, TOK_LPAREN)){
             parameter_type_list(p);
             if(!match(p, TOK_RPAREN)){
-                return NULL;
+                parser_error(p, "')' after parameter list");
+                panic_mode(p);
+                return false;
             }
             continue_recursion = true;
             has_base_case = true;
@@ -736,33 +800,33 @@ Node *direct_abstract_declarator(Parser *p){
     return has_base_case;
 }
 
-Node *parameter_type_list(Parser *p){
+bool parameter_type_list(Parser *p){
     if(!parameter_list(p)){
-        return NULL;
+        return false;
     }
-    while(match(p, TOK_COMMA)){
+    if(match(p, TOK_COMMA)){
         if(!match(p, TOK_ELLIPSIS)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *parameter_list(Parser *p){
+bool parameter_list(Parser *p){
     if(!parameter_declaration(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_COMMA)){
         if(!parameter_declaration(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *parameter_declaration(Parser *p){
+bool parameter_declaration(Parser *p){
     if(!declaration_specifiers(p)){
-        return NULL;
+        return false;
     }
     if(declarator(p)){
         return true;
@@ -771,84 +835,87 @@ Node *parameter_declaration(Parser *p){
     return true;
 }
 
-Node *initializer_list(Parser *p){
+bool initializer_list(Parser *p){
     designation(p);
     if(!initializer(p)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_COMMA)){
         designation(p);
         if(!initializer(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *designation(Parser *p){
+bool designation(Parser *p){
     if(!designator_list(p)){
-        return NULL;
+        return false;
     }
     if(!match(p, TOK_ASSIGN)){
-        return NULL;
+        return false;
     }
     return true;
 }
 
-Node *designator_list(Parser *p){
+bool designator_list(Parser *p){
     if(!designator(p)){
-        return NULL;
+        return false;
     }
     while(designator(p));
     return true;
 }
 
-Node *designator(Parser *p){
+bool designator(Parser *p){
     if(match(p, TOK_LBRACKET)){
         if(!constant_expression(p)){
-            return NULL;
+            return false;
         }
         if(!match(p, TOK_RBRACKET)){
-            return NULL;
+            parser_error(p, "']' after constant expression");
+            panic_mode(p);
+            return false;
         }
         return true;
     }
     if(match(p, TOK_DOT)){
         if(!match(p, TOK_ID)){
-            return NULL;
+            return false;
         }
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *constant_expression(Parser *p){
+bool constant_expression(Parser *p){
     if(!conditional_expression(p)){
-        return NULL;
+        return false;
     }
     return true;
 }
 
-Node *initializer(Parser *p){
+bool initializer(Parser *p){
     if(assignment_expression(p)){
         return true;
     }
     if(match(p, TOK_LBRACE)){
         if(!initializer_list(p)){
-            return NULL;
+            return false;
         }
         match(p, TOK_COMMA);
         if(!match(p, TOK_RBRACE)){
-            return NULL;
+            parser_error(p, "'}' after ','");
+            panic_mode(p);
+            return false;
         }
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *unary_operator(Parser *p){
-    Token *tok = get_current_token(p);
-    switch(tok->type){
+bool unary_operator(Parser *p){
+    switch(get_current_token(p)){
         case TOK_BIT_AND:
         case TOK_STAR:
         case TOK_PLUS:
@@ -856,16 +923,15 @@ Node *unary_operator(Parser *p){
         case TOK_BIT_NOT:
         case TOK_LOGICAL_NOT:
             get_next_token(p);
-            return ast_token_solo(p, NODE_EXP_UNARY, tok);
+            return true;
         default:
-            return NULL;
+            return false;
     }
-    return NULL;
+    return false;
 }
 
-Node *assignment_operator(Parser *p){
-    Token *tok = get_current_token(p);
-    switch(tok->type){
+bool assignment_operator(Parser *p){
+    switch(get_current_token(p)){
         case TOK_ASSIGN:
         case TOK_STAR_ASSIGN:
         case TOK_SLASH_ASSIGN:
@@ -878,181 +944,169 @@ Node *assignment_operator(Parser *p){
         case TOK_OR_ASSIGN:
         case TOK_XOR_ASSIGN:
             get_next_token(p);
-            return ast_token_solo(p, NODE_EXP_ASSIGN, tok);
+            return true;
         default:
-            return NULL;
+            return false;
     }
-    return NULL;
+    return false;
 }
 
-Node *identifier_list(Parser *p){
-
+bool identifier_list(Parser *p){
     if(!match(p, TOK_ID)){
-        return NULL;
+        return false;
     }
     while(match(p, TOK_COMMA)){
         if(!match(p, TOK_ID)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *enum_specifier(Parser *p){
+bool enum_specifier(Parser *p){
     if(!match(p, TOK_KW_ENUM)){
-        return NULL;
+        return false;
     }
     bool has_id = match(p, TOK_ID);
     if(match(p, TOK_LBRACE)){
         if(!enumerator_list(p)){
-            return NULL;
+            return false;
         }
         match(p, TOK_COMMA);
         if(!match(p, TOK_RBRACE)){
-            return NULL;
+            parser_error(p, "'}' after enumerator list");
+            panic_mode(p);
+            return false;
         }
         return true;
     }
     if(!has_id){
-        return NULL;
+        return false;
     }
     return true;
 }
 
-Node *enumerator_list(Parser *p){
+bool enumerator_list(Parser *p){
     if(!enumarator(p)){
-        return NULL;
+        return false;
     }
-    while(match(p, TOK_COMMA)){
+    while(get_current_token(p) == TOK_COMMA){
+        if(lexer_peek_next_token(p->l)->type == TOK_RBRACE){
+            get_next_token(p);
+            break;
+        }
+        get_next_token(p);
         if(!enumarator(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *enumarator(Parser *p){
+bool enumarator(Parser *p){
     if(!match(p, TOK_ID)){
-        return NULL;
+        return false;
     }
     if(match(p, TOK_ASSIGN)){
         if(!constant_expression(p)){
-            return NULL;
+            return false;
         }
     }
     return true;
 }
 
-Node *typedef_name(Parser *p){
-    if(match(p, TOK_ID)){
-        Node *id = get_current_token(p);
-        return id;
+// table to be implemented
+bool typedef_name(Parser *p){
+    if(!match(p, TOK_ID)){
+        return false;
     }
-    return NULL;
+    return true;
 }
 
-Node *function_specifier(Parser *p){
-    Token *tok = get_current_token(p);
-    if(tok->type == TOK_KW_INLINE){
-        return ast_token_solo(p, NODE_FUNCTION_SPECIFIER, tok);
+bool function_specifier(Parser *p){
+    if(!match(p, TOK_KW_INLINE)){
+        return false;
     }
-    return NULL;
+    return true;
 }
 
-Node *declaration_list(Parser *p){
-    NodesList *list = NULL;
-    Node *element = declaration(p);
-    if(!element){
-        return NULL;
+bool declaration_list(Parser *p){
+    if(!declaration(p)){
+        return false;
     }
-    while(element){
-        push_node_list(p, &list, element);
-        element = declaration(p);
-    }
-    return ast_list_solo(p, NODE_DECLARATION, *list);
+    while(declaration(p));
+    return true;
 }
 
-Node *declaration(Parser *p){
-    Node *dec_specifiers = declaration_specifiers(p);
-    if(!dec_specifiers){
-        return NULL;
+bool declaration(Parser *p){
+    if(!declaration_specifiers(p)){
+        return false;
     }
-    Node *init_dec_list = init_declarator_list(p);
+    init_declarator_list(p);
     if(!match(p, TOK_SEMICOLON)){
-        return NULL;
+        parser_error(p, "';' after declaration");
+        panic_mode(p);
+        return false;
     }
-    return ast_node_duo(p, NODE_DECLARATION, dec_specifiers, init_dec_list);
+    return true;    
 }
 
-Node *init_declarator_list(Parser *p){
-    NodesList *list = NULL;
-    Node *element = init_declarator(p);
-    if(!element){
-        return NULL;
+bool init_declarator_list(Parser *p){
+    if(!init_declarator(p)){
+        return false;
     }
-    get_next_token(p);
     while(match(p, TOK_COMMA)){
-        push_node_list(p, &list, element);
-        element = init_declarator(p);
-        if(!element){
-            return NULL;
+        if(!init_declarator(p)){
+            return false;
         }
     }
-    return ast_list_solo(p, NODE_INIT_DECLARATOR_LIST, *list);
+    return true;
 }
 
-Node *init_declarator(Parser *p){
-    Node *dec = declarator(p);
-    if(!dec){
-        return NULL;
+bool init_declarator(Parser *p){
+    if(!declarator(p)){
+        return false;
     }
-    Node *init = NULL;
     if(match(p, TOK_ASSIGN)){
-        init = initializer(p);
-        if(!init){
-            return NULL;
+        if(!initializer(p)){
+            return false;
         }
     }
-    return ast_node_duo(p, NODE_INIT_DECLARATOR, dec, init);
+    return true;
 }
 
-Node *compound_statement(Parser *p){
+bool compound_statement(Parser *p){
     if(match(p, TOK_LBRACE)){
         block_item_list(p);
         if(!match(p, TOK_RBRACE)){
-            return NULL;
+            parser_error(p, "'}' after block item list");
+            panic_mode(p);
+            return false;
         }
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *block_item_list(Parser *p){
-    NodesList *list = NULL;
-    Node *element = block_item(p);
-    if(!element){
-        return NULL;
+bool block_item_list(Parser *p){
+    if(!block_item(p)){
+        return false;
     }
-    while(element){
-        push_node_list(p, &list, element);
-        element = block_item(p);
-    }
-    return ast_list_solo(p, NODE_ST_COMPOUND, *list);
+    while(block_item(p));
+    return true;
 }
 
-Node *block_item(Parser *p){
-    Node *child = declaration(p);
-    if(child){
-        return child;
+bool block_item(Parser *p){
+    if(statement(p)){
+        return true;
     }
-    Node *child = statement(p);
-    if(child){
-        return child;
+    if(declaration(p)){
+        return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *statement(Parser *p){
+bool statement(Parser *p){
     if(labeled_statement(p)){
         return true;
     }
@@ -1071,208 +1125,259 @@ Node *statement(Parser *p){
     if(jump_statement(p)){
         return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *labeled_statement(Parser *p){
-    if(match(p, TOK_ID)){
-        Token *label = get_current_token(p);
-        if(!match(p, TOK_COLON)){
-            return NULL;
+bool labeled_statement(Parser *p){
+    if(get_current_token(p) == TOK_ID && lexer_peek_next_token(p->l)->type == TOK_COLON){
+        get_next_token(p);
+        get_next_token(p);
+        if(!statement(p)){
+            parser_error(p, "statement after ':'");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
-        }
-        return ast_token_node_solo(p, NODE_ST_LABEL, label, st);
+        return true;
     }
     if(match(p, TOK_KW_CASE)){
-        Node *exp = constant_expression(p);
-        if(!exp){
-            return NULL;
+        if(!constant_expression(p)){
+            parser_error(p, "expression after 'case'");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_COLON)){
-            return NULL;
+            parser_error(p, "':' after expression");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            return false;
         }
-        return ast_node_duo(p, NODE_ST_CASE, exp, st);
+        return true;
     }
     if(match(p, TOK_KW_DEFAULT)){
         if(!match(p, TOK_COLON)){
-            return NULL;
+            parser_error(p, "':' after 'default'");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            parser_error(p, "default statement is empty");
+            panic_mode(p);
+            return false;
         }
-        return ast_node_solo(p, NODE_ST_DEFAULT, st);
+        return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *expression_statement(Parser *p){
-    Node *exp = expression(p);
+bool expression_statement(Parser *p){
+    expression(p);
     if(!match(p, TOK_SEMICOLON)){
-        return NULL;
+        parser_error(p, "';' after expression");
+        panic_mode(p);
+        return false;
     }
-    return ast_node_solo(p, NODE_ST_EXPR, exp);
+    return true;
 }
 
-Node *selection_statement(Parser *p){
+bool selection_statement(Parser *p){
     if(match(p, TOK_KW_IF)){
         if(!match(p, TOK_LPAREN)){
-            return NULL;
+            parser_error(p, "'(' after 'if'");
+            panic_mode(p);
+            return false;
         }
-        Node *exp = expression(p);
-        if(!exp){
-            return NULL;
+        if(!expression(p)){
+            parser_error(p, "expression after '('");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after expression");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            parser_error(p, "statement after ')'");
+            panic_mode(p);
+            return false;
         }
-        Node *st_else = NULL;
         if(match(p, TOK_KW_ELSE)){
-            st_else = statement(p);
-            if(!st_else){
-                return NULL;
+            if(!statement(p)){
+                parser_error(p, "statement after 'else'");
+                panic_mode(p);
+                return false;
             }
         }
-        return ast_node_trio(p, NODE_ST_IF, exp, st, st_else);
+        return true;
     }
     if(match(p, TOK_KW_SWITCH)){
         if(!match(p, TOK_LPAREN)){
-            return NULL;
+            parser_error(p, "'(' after 'switch'");
+            panic_mode(p);
+            return false;
         }
-        Node *exp = expression(p); 
-        if(!exp){
-            return NULL;
+        if(!expression(p)){
+            parser_error(p, "expression after '('");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after expression");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            parser_error(p, "statement after ')'");
+            panic_mode(p);
+            return false;
         }
-        return ast_node_duo(p, NODE_ST_SWITCH, exp, st);
+        return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *iteration_statement(Parser *p){
+bool iteration_statement(Parser *p){
     if(match(p, TOK_KW_WHILE)){
         if(!match(p, TOK_LPAREN)){
-            return NULL;
+            parser_error(p, "'(' after 'while'");
+            panic_mode(p);
+            return false;
         }
-        Node *exp = expression(p);
-        if(!exp){
-            return NULL;
+        if(!expression(p)){
+            parser_error(p, "expression after '('");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after expression");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            parser_error(p, "statement after ')'");
+            panic_mode(p);
+            return false;
         }
-        return ast_node_duo(p, NODE_ST_WHILE, exp, st);
+        return true;
     }
     if(match(p, TOK_KW_DO)){
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            parser_error(p, "statement after 'do'");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_KW_WHILE)){
-            return NULL;
+            parser_error(p, "'while' after statement");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_LPAREN)){
-            return NULL;
+            parser_error(p, "'(' after 'while'");
+            panic_mode(p);
+            return false;
         }
-        Node *exp = expression(p);
-        if(!exp){
-            return NULL;
+        if(!expression(p)){
+            parser_error(p, "expression after '('");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after expression");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_SEMICOLON)){
-            return NULL;
+            parser_error(p, "';' after ')'");
+            panic_mode(p);
+            return false;
         }
-        return ast_node_duo(p, NODE_ST_DO_WHILE, st, exp);
+        return true;
     }
     if(match(p, TOK_KW_FOR)){
         if(!match(p, TOK_LPAREN)){
-            return NULL;
+            parser_error(p, "'(' after 'for'");
+            panic_mode(p);
+            return false;
         }
-        Node *dec_or_exp = declaration(p);
-        Node *exp_cond = NULL;
-        Node *exp_post = NULL; 
         if(!declaration(p)){
-            dec_or_exp = expression(p);
+            expression(p);
             if(!match(p, TOK_SEMICOLON)){
-                return NULL;
+                parser_error(p, "';' after expression");
+                panic_mode(p);
+                return false;
             }
-            exp_cond = expression(p);
+            expression(p);
             if(!match(p, TOK_SEMICOLON)){
-                return NULL;
+                parser_error(p, "';' after expression");
+                panic_mode(p);
+                return false;
             }
-            exp_post = expression(p);
+            expression(p);
         }
         else{
-            exp_cond = expression(p);
+            expression(p);
             if(!match(p, TOK_SEMICOLON)){
-                return NULL;
+                parser_error(p, "';' after expression");
+                panic_mode(p);
+                return false;
             }
-            exp_post = expression(p);
+            expression(p);
         }
         if(!match(p, TOK_RPAREN)){
-            return NULL;
+            parser_error(p, "')' after expression");
+            panic_mode(p);
+            return false;
         }
-        Node *st = statement(p);
-        if(!st){
-            return NULL;
+        if(!statement(p)){
+            parser_error(p, "'statement' after ')'");
+            panic_mode(p);
+            return false;
         }
-        return ast_node_quartet(p, NODE_ST_FOR, dec_or_exp, exp_cond, exp_post, st);
+        return true;
     }
-    return NULL;
+    return false;
 }
 
-Node *jump_statement(Parser *p){
+bool jump_statement(Parser *p){
     if(match(p, TOK_KW_GOTO)){
-        Token *label = p->current_token;
         if(!match(p, TOK_ID)){
-            return NULL;
+            parser_error(p, "'label' after 'goto statement'");
+            panic_mode(p);
+            return false;
         }
         if(!match(p, TOK_SEMICOLON)){
-            return NULL;
+            parser_error(p, "';' afer identifier");
+            panic_mode(p);
+            return false;
         }
-        return ast_token_solo(p, NODE_ST_GOTO, label);
+        return true;
     }
     if(match(p, TOK_KW_CONTINUE)){
         if(!match(p, TOK_SEMICOLON)){
-            return NULL;
+            parser_error(p, "';' afer 'continue'");
+            panic_mode(p);
+            return false;
         }
-        return init_node(p, NODE_ST_CONTINUE);
+        return true;
     }
     if(match(p, TOK_KW_BREAK)){
         if(!match(p, TOK_SEMICOLON)){
-            return NULL;
+            parser_error(p, "';' after 'break'");
+            panic_mode(p);
+            return false;
         }
-        return init_node(p, NODE_ST_BREAK);
+        return true;
     }
     if(match(p, TOK_KW_RETURN)){
-        Node *exp = expression(p);
+        expression(p);
         if(!match(p, TOK_SEMICOLON)){
-            return NULL;
+            parser_error(p, "';' after returning expression");
+            panic_mode(p);
+            return false;
         }
-        return ast_node_solo(p, NODE_ST_RETURN, exp);
+        return true;
     }
-    return NULL;
+    return false;
 }

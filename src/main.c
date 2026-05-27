@@ -59,15 +59,10 @@ int main(int argc, char *argv[]){
     }
 
     Lexer *lexer = init_lexer(&compiler_arena, source_code);
-    Parser p;
-    p.l = lexer;
-    advance(&p);
+    Parser *p = init_parser(&compiler_arena, lexer);
 
-    bool parse = translation_unit(&p);
-    printf("\n");
-    if(parse && get_current_token(&p)){
-        printf("no syntax errors found\n");
-    }
+    translation_unit(p);
+    printf("%d errors found.\n", p->error_count);
 
     free(backing_mem);
     exit(0);
