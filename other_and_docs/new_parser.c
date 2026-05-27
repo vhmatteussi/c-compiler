@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "new_parser.h"
 
 Token *get_current_token(Parser *p){
     return p->current_token;

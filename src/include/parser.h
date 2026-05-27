@@ -31,21 +31,8 @@ bool match(Parser *p, TokenType type_to_match);
 void parser_error(Parser *p, const char *msg);
 void panic_mode(Parser *p);
 
-void parser_save_state(Parser *p, ParserState *state){
-    state->current_token = p->current_token;
-    state->lexer_start = p->l->start;
-    state->lexer_forward = p->l->forward;
-    state->lexer_line = p->l->line;
-    state->lexer_col = p->l->col;
-}
-
-void parser_restore_state(Parser *p, ParserState *state){
-    p->current_token = state->current_token;
-    p->l->start = state->lexer_start;
-    p->l->forward = state->lexer_forward;
-    p->l->line = state->lexer_line;
-    p->l->col = state->lexer_col;
-}
+void parser_save_state(Parser *p, ParserState *state);
+void parser_restore_state(Parser *p, ParserState *state);
 
 bool translation_unit(Parser *p);
 bool external_declaration(Parser *p);
